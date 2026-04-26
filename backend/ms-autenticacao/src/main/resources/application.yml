@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: ms-autenticacao
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/seed_educa
+    username: seed_user
+    password: seed_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+jwt:
+  secret: seed-educa-jwt-secret-key-2024-muito-segura-para-desenvolvimento
+  expiration: 86400000
+
+logging:
+  level:
+    br.gov.seed: DEBUG
+    org.springframework.security: INFO
