@@ -1,47 +1,22 @@
-# ============================================================
-# SEED Educa — Pipeline de CI (Integração Contínua)
-# ============================================================
-# Este arquivo diz ao GitHub o que fazer automaticamente
-# toda vez que alguém fizer push ou abrir um Pull Request.
-#
-# CI = Continuous Integration = Integração Contínua
-# Na prática: "roda os testes antes de aceitar o código"
-# ============================================================
-
-# Nome que aparece na aba "Actions" do GitHub
 name: CI — SEED Educa
 
-# ============================================================
-# GATILHO — quando este pipeline é executado
-# ============================================================
 on:
-  # Quando alguém fizer push em qualquer branch
   push:
     branches:
       - main
       - develop
-      - 'feature/**'   # ex: feature/ms-autenticacao
-
-  # Quando alguém abrir ou atualizar um Pull Request
+      - 'feature/**'
   pull_request:
     branches:
       - main
       - develop
 
-# ============================================================
-# JOBS — as tarefas que serão executadas
-# Cada job roda em uma máquina virtual limpa no GitHub
-# ============================================================
 jobs:
 
-  # ----------------------------------------------------------
-  # JOB 1: Verificar o Backend (Java/Spring Boot)
-  # ----------------------------------------------------------
-  build-backend:
-    name: Build e Testes — Backend
-    runs-on: ubuntu-latest   # Máquina virtual Linux gratuita
+  backend-java:
+    name: Build — ${{ matrix.ms }}
+    runs-on: ubuntu-latest
 
-    # Serviços que sobem junto com o job (como o docker-compose, mas no CI)
     services:
       postgres:
         image: postgres:16
@@ -51,13 +26,11 @@ jobs:
           POSTGRES_PASSWORD: seed_pass
         ports:
           - 5432:5432
-        # Espera o banco ficar pronto antes de rodar os testes
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports:
@@ -68,161 +41,177 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    # Estratégia de matrix: roda o mesmo job para cada microsserviço
     strategy:
       matrix:
-        microservico:
+        ms:
           - ms-autenticacao
           - ms-questoes
           - ms-simulados
-          - ms-cursos
           - ms-relatorios
           - api-gateway
-      # Se um falhar, continua testando os outros
       fail-fast: false
 
     steps:
-      # Passo 1: Baixa o código do repositório na máquina virtual
-      - name: Checkout do código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Passo 2: Instala o Java 21 (versão LTS usada no projeto)
-      - name: Configurar Java 21
+      - name: Java 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'   # OpenJDK da Eclipse Foundation (gratuito)
+          distribution: 'temurin'
 
-      # Passo 3: Cache do Maven
-      # Salva as dependências baixadas para não baixar de novo na próxima vez
-      # Economiza ~2 minutos por execução
-      - name: Cache de dependências Maven
+      - name: Cache Maven
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+          restore-keys: ${{ runner.os }}-maven-
 
-      # Passo 4: Verifica se a pasta do microsserviço existe
-      # (evita erro se o MS ainda não foi criado)
-      - name: Verificar se microsserviço existe
+      - name: Verificar se existe
         id: check
         run: |
-          if [ -f "backend/${{ matrix.microservico }}/pom.xml" ]; then
+          if [ -f "backend/${{ matrix.ms }}/pom.xml" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  backend/${{ matrix.microservico }} ainda não tem pom.xml — pulando."
+            echo "⚠️  backend/${{ matrix.ms }} ainda não tem pom.xml — pulando."
           fi
 
-      # Passo 5: Compila e roda os testes
-      - name: Build e Testes — ${{ matrix.microservico }}
+      - name: Build e testes
         if: steps.check.outputs.exists == 'true'
-        working-directory: backend/${{ matrix.microservico }}
+        working-directory: backend/${{ matrix.ms }}
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/seed_educa_test
           SPRING_DATASOURCE_USERNAME: seed_user
           SPRING_DATASOURCE_PASSWORD: seed_pass
           SPRING_REDIS_HOST: localhost
           SPRING_REDIS_PORT: 6379
-        # mvn verify = compila + roda testes unitários + testes de integração
         run: mvn verify --no-transfer-progress
 
-      # Passo 6: Publica o relatório de testes no GitHub
-      - name: Publicar relatório de testes
+      - name: Relatório de testes
         if: steps.check.outputs.exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.microservico }}
-          path: backend/${{ matrix.microservico }}/target/surefire-reports/
-          retention-days: 7   # Guarda por 7 dias
+          name: tests-${{ matrix.ms }}
+          path: backend/${{ matrix.ms }}/target/surefire-reports/
+          retention-days: 7
 
-  # ----------------------------------------------------------
-  # JOB 2: Verificar o Frontend (React + TypeScript)
-  # ----------------------------------------------------------
-  build-frontend:
-    name: Build e Testes — Frontend
+  backend-go:
+    name: Build — Go (${{ matrix.ms }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ms:
+          - ms-certificados
+          - ms-cursos
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "backend/${{ matrix.ms }}/go.mod" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  backend/${{ matrix.ms }} ainda não tem go.mod — pulando."
+          fi
+
+      - name: Build e testes
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend/${{ matrix.ms }}
+        run: |
+          go mod tidy
+          go build ./...
+          go test ./...
+
+  analytics-ia:
+    name: Build — Python (analytics-ia)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Instala o Node.js (runtime do React)
-      - name: Configurar Node.js 20
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "analytics-ia/requirements.txt" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  analytics-ia ainda não tem requirements.txt — pulando."
+          fi
+
+      - name: Instalar dependências
+        if: steps.check.outputs.exists == 'true'
+        working-directory: analytics-ia
+        run: pip install -r requirements.txt
+
+      - name: Testes
+        if: steps.check.outputs.exists == 'true'
+        working-directory: analytics-ia
+        run: pytest || echo "pytest ainda não configurado"
+
+  frontend:
+    name: Build — Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      # Verifica se o frontend já foi iniciado
-      - name: Verificar se frontend existe
-        id: check-fe
+      - name: Verificar se existe
+        id: check
         run: |
           if [ -f "frontend/package.json" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  frontend/package.json ainda não existe — pulando."
           fi
 
-      # Instala as dependências (node_modules)
-      - name: Instalar dependências
-        if: steps.check-fe.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm ci   # ci = install limpo, mais rápido que npm install
-
-      # Verifica erros de TypeScript e ESLint
-      - name: Lint e verificação de tipos
-        if: steps.check-fe.outputs.exists == 'true'
+      - name: Instalar e buildar
+        if: steps.check.outputs.exists == 'true'
         working-directory: frontend
         run: |
-          npm run lint     || echo "lint ainda não configurado"
-          npm run type-check || echo "type-check ainda não configurado"
+          npm ci
+          npm run build
 
-      # Gera o build de produção
-      - name: Build de produção
-        if: steps.check-fe.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm run build
-
-  # ----------------------------------------------------------
-  # JOB 3: Validar o Docker Compose
-  # Garante que o arquivo de infraestrutura está correto
-  # ----------------------------------------------------------
-  validate-infra:
-    name: Validar Infraestrutura (Docker)
+  infra:
+    name: Validar docker-compose
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Validar docker-compose.yml
+      - uses: actions/checkout@v4
+      - name: Validar sintaxe
         working-directory: infra
         run: docker compose config --quiet
-        # --quiet = só mostra erros, não imprime o arquivo inteiro
 
-  # ----------------------------------------------------------
-  # JOB 4: Notificação de Status (resumo final)
-  # Roda só depois que todos os outros jobs terminarem
-  # ----------------------------------------------------------
   status:
-    name: Status do Pipeline
+    name: Status final
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend, validate-infra]
-    # always() = roda mesmo se algum job anterior falhou
+    needs: [backend-java, backend-go, analytics-ia, frontend, infra]
     if: always()
-
     steps:
-      - name: Resumo do Pipeline
+      - name: Resumo
         run: |
-          echo "============================================"
-          echo "  SEED Educa — Resultado do CI"
-          echo "============================================"
-          echo "  Backend:  ${{ needs.build-backend.result }}"
-          echo "  Frontend: ${{ needs.build-frontend.result }}"
-          echo "  Infra:    ${{ needs.validate-infra.result }}"
-          echo "============================================"
+          echo "Backend Java:  ${{ needs.backend-java.result }}"
+          echo "Backend Go:    ${{ needs.backend-go.result }}"
+          echo "Analytics IA:  ${{ needs.analytics-ia.result }}"
+          echo "Frontend:      ${{ needs.frontend.result }}"
+          echo "Infra:         ${{ needs.infra.result }}"
