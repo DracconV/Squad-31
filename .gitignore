@@ -1,0 +1,84 @@
+# ===========================
+# JAVA / SPRING BOOT
+# ===========================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# ===========================
+# NODE / REACT
+# ===========================
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# ===========================
+# VARIÁVEIS DE AMBIENTE
+# ===========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# ===========================
+# IDEs
+# ===========================
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===========================
+# SISTEMA OPERACIONAL
+# ===========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# DOCKER
+# ===========================
+docker-compose.override.yml
+
+# ===========================
+# LOGS
+# ===========================
+logs/
+*.log
+spring.log
+
+# ===========================
+# TESTES / COBERTURA
+# ===========================
+coverage/
+.nyc_output/
+surefire-reports/
+
+# ===========================
+# OUTROS
+# ===========================
+*.tmp
+*.bak
+*.swp
