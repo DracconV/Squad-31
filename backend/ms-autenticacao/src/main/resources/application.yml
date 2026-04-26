@@ -45,4 +45,5 @@ jwt:
 logging:
   level:
     br.gov.seed: DEBUG
-    org.springframework.security: INFO
+    org.springframework.security: TRACE
+    org.springframework.web: DEBUG
