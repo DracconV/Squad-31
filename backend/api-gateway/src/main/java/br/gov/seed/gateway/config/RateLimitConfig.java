@@ -19,11 +19,12 @@ public class RateLimitConfig {
 
     @Bean
     public KeyResolver remoteAddressKeyResolver() {
-        return exchange -> Mono.just(
-            Objects.requireNonNullElse(
-                exchange.getRequest().getRemoteAddress(),
-                exchange.getRequest().getLocalAddress()
-            ).getAddress().getHostAddress()
-        );
+        return exchange -> {
+            var remoteAddress = exchange.getRequest().getRemoteAddress();
+            String ip = (remoteAddress != null)
+                    ? remoteAddress.getAddress().getHostAddress()
+                    : "unknown";
+            return Mono.just(ip);
+        };
     }
 }
