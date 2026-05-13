@@ -57,7 +57,7 @@ management:
       enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:seed-educa-jwt-secret-key-2024-muito-segura-para-desenvolvimento}
+  secret: ${JWT_SECRET}
 
 logging:
   level:
