@@ -39,7 +39,7 @@ management:
         enabled: true
 
 jwt:
-  secret: seed-educa-jwt-secret-key-2024-muito-segura-para-desenvolvimento
+  secret: ${JWT_SECRET:seed-educa-jwt-secret-key-2024-muito-segura-para-desenvolvimento}
   expiration: 86400000
 
 logging:

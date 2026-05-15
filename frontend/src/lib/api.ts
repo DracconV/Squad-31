@@ -60,7 +60,7 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
 
 export interface PrimeiroAcessoRequest {
   matricula: string
-  senhaAtual: string
+  senhaTemporaria: string
   novaSenha: string
 }
 

@@ -19,7 +19,7 @@ INSERT INTO disciplina (id, nome) VALUES
 INSERT INTO instituicao (id, nome, municipio, codigo_inep) VALUES
     ('00000000-0000-0000-0000-000000000001', 'Escola Estadual de Desenvolvimento', 'Aracaju', '28000001');
 
--- Admin padrão — senha: admin123 (trocar em produção)
+-- Admin padrão — senha: password (trocar em produção)
 INSERT INTO usuario (id, nome, matricula, senha_hash, perfil, primeiro_acesso, instituicao_id) VALUES
     (
         gen_random_uuid(),
