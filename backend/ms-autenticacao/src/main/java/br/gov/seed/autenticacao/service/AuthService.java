@@ -25,7 +25,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.matricula(), request.senha())
             );
         } catch (Exception e) {
-            throw new RuntimeException("ERRO AUTH: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            throw e;
         }
 
         Usuario usuario = usuarioRepository.findByMatricula(request.matricula())
