@@ -1,15 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import LoadingScreen from './components/LoadingScreen'
 import { useAuth } from './contexts/AuthContext'
 import { ROTA_POR_PERFIL } from './lib/auth'
 import LoginPage from './pages/LoginPage'
 import SemAcessoPage from './pages/SemAcessoPage'
-import AlunoEmHome from './portals/aluno-em/AlunoEmHome'
-import AlunoEjaHome from './portals/aluno-eja/AlunoEjaHome'
-import AlunoProfHome from './portals/aluno-prof/AlunoProfHome'
-import ProfessorHome from './portals/professor/ProfessorHome'
-import AdminEscolaHome from './portals/admin-escola/AdminEscolaHome'
-import AdminSeedHome from './portals/admin-seed/AdminSeedHome'
+import PortalHome from './portals/PortalHome'
 
 /**
  * Redireciona o usuário logado para o portal correspondente ao
@@ -17,13 +13,7 @@ import AdminSeedHome from './portals/admin-seed/AdminSeedHome'
  */
 function RootRedirect() {
   const { user, loading } = useAuth()
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
-        Carregando…
-      </div>
-    )
-  }
+  if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   return <Navigate to={ROTA_POR_PERFIL[user.perfil] ?? '/login'} replace />
 }
@@ -39,7 +29,7 @@ function App() {
         path="/aluno-em/*"
         element={
           <ProtectedRoute perfis={['ALUNO_EM']}>
-            <AlunoEmHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />
@@ -47,7 +37,7 @@ function App() {
         path="/aluno-eja/*"
         element={
           <ProtectedRoute perfis={['ALUNO_EJA']}>
-            <AlunoEjaHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />
@@ -55,7 +45,7 @@ function App() {
         path="/aluno-prof/*"
         element={
           <ProtectedRoute perfis={['ALUNO_PROF']}>
-            <AlunoProfHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />
@@ -63,7 +53,7 @@ function App() {
         path="/professor/*"
         element={
           <ProtectedRoute perfis={['PROFESSOR']}>
-            <ProfessorHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />
@@ -71,7 +61,7 @@ function App() {
         path="/admin-escola/*"
         element={
           <ProtectedRoute perfis={['ADMIN_ESCOLA']}>
-            <AdminEscolaHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />
@@ -79,7 +69,7 @@ function App() {
         path="/admin-seed/*"
         element={
           <ProtectedRoute perfis={['ADMIN_SEED']}>
-            <AdminSeedHome />
+            <PortalHome />
           </ProtectedRoute>
         }
       />

@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import LoadingScreen from './LoadingScreen'
 import type { Perfil } from '../lib/auth'
 
 interface ProtectedRouteProps {
@@ -16,13 +17,7 @@ export function ProtectedRoute({ children, perfis }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
-        Carregando…
-      </div>
-    )
-  }
+  if (loading) return <LoadingScreen />
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />
