@@ -28,7 +28,8 @@ public class SecurityConfig {
                     "/auth/login",
                     "/auth/primeiro-acesso",
                     "/verificar-certificado/**",
-                    "/actuator/**"
+                    "/actuator/**",
+                    "/error"
                 ).permitAll()
                 .anyExchange().authenticated()
             )

@@ -19,13 +19,13 @@ INSERT INTO disciplina (id, nome) VALUES
 INSERT INTO instituicao (id, nome, municipio, codigo_inep) VALUES
     ('00000000-0000-0000-0000-000000000001', 'Escola Estadual de Desenvolvimento', 'Aracaju', '28000001');
 
--- Admin padrão — senha: password (trocar em produção)
+-- Admin padrão — senha: seed@2025 (trocar em produção)
 INSERT INTO usuario (id, nome, matricula, senha_hash, perfil, primeiro_acesso, instituicao_id) VALUES
     (
         gen_random_uuid(),
         'Administrador SEED',
         'admin',
-        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+        '$2a$10$9fSHviWJrtFArkp.ONGFnORmpu//IIcPj2GNW/xECl2K1YkMHLzAm',
         'ADMIN_SEED',
         FALSE,
         '00000000-0000-0000-0000-000000000001'
