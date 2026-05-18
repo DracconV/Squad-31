@@ -1,168 +1,196 @@
 import type { ReactElement } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { StatCard } from '../components/StatCard'
 import { ProgressBar } from '../components/ProgressBar'
 import { StatusBanner } from '../components/StatusBanner'
+import {
+  getStats,
+  listarMinhasInscricoes,
+  type StatsAluno,
+  type StatsAdmin,
+  type StatsProfessor,
+  type Inscricao,
+} from '../lib/api'
 import type { Perfil } from '../lib/auth'
 
-/* ── Dashboard por perfil ───────────────────────────────── */
+/* ── Skeleton de loading ────────────────────────────────── */
 
-function DashboardAlunoEM() {
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 animate-pulse h-24" />
+      ))}
+    </div>
+  )
+}
+
+/* ── Dashboard do Aluno ─────────────────────────────────── */
+
+function DashboardAluno() {
+  const { data: stats, isLoading: loadingStats } = useQuery<StatsAluno>({
+    queryKey: ['stats'],
+    queryFn: getStats as () => Promise<StatsAluno>,
+  })
+
+  const { data: inscricoes = [], isLoading: loadingInscricoes } = useQuery<Inscricao[]>({
+    queryKey: ['inscricoes-minhas'],
+    queryFn: listarMinhasInscricoes,
+  })
+
+  const proximas = inscricoes.filter((i) => !i.concluido).slice(0, 3)
+
   return (
     <>
-      <StatusBanner variant="info">
-        Seu próximo simulado está agendado para <strong>sexta-feira às 14h</strong>.
-      </StatusBanner>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <StatCard title="Simulados realizados"  value={12} trend="up"      trendValue="+2 este mês" />
-        <StatCard title="Média geral"           value="72%" trend="up"     trendValue="+5 pontos" />
-        <StatCard title="Questões respondidas"  value={340} trend="neutral" trendValue="esta semana" />
-        <StatCard title="Sequência de dias"     value="7 dias" trend="up"  trendValue="recorde!" />
-      </div>
+      {loadingStats ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Cursos em andamento"  value={stats?.cursosAtivos ?? 0} />
+          <StatCard title="Cursos concluídos"    value={stats?.cursosConcluidos ?? 0} trend="up" trendValue="parabéns!" />
+          <StatCard title="Certificados emitidos" value={stats?.certificados ?? 0} />
+          <StatCard title="Cursos disponíveis"   value={stats?.totalCursos ?? 0} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Desempenho por disciplina</h2>
-          <div className="space-y-3">
-            <ProgressBar label="Matemática"         value={78} color="blue" />
-            <ProgressBar label="Língua Portuguesa"  value={65} color="blue" />
-            <ProgressBar label="Ciências da Natureza" value={54} color="yellow" />
-            <ProgressBar label="Ciências Humanas"   value={82} color="green" />
-          </div>
+          <h2 className="font-semibold text-gray-700 mb-4">Cursos em andamento</h2>
+          {loadingInscricoes ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}
+            </div>
+          ) : proximas.length === 0 ? (
+            <p className="text-sm text-gray-400">Nenhum curso em andamento. Inscreva-se em um curso!</p>
+          ) : (
+            <div className="space-y-4">
+              {proximas.map((inscricao) => (
+                <div key={inscricao.id}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-700 font-medium truncate">{inscricao.nomeCurso}</span>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">
+                      {new Date(inscricao.dataInscricao).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <ProgressBar value={inscricao.concluido ? 100 : 30} color={inscricao.concluido ? 'green' : 'blue'} showPercent={false} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Últimos simulados</h2>
-          <div className="space-y-2 text-sm">
-            {[
-              { nome: 'Simulado ENEM — Geral',     nota: 680, data: '12/05' },
-              { nome: 'Simulado Matemática',        nota: 72,  data: '05/05' },
-              { nome: 'Simulado Ciências Humanas',  nota: 84,  data: '28/04' },
-            ].map((s) => (
-              <div key={s.nome} className="flex justify-between items-center py-2 border-b border-gray-50">
-                <span className="text-gray-700">{s.nome}</span>
-                <span className="text-xs text-gray-400">{s.data}</span>
-                <span className="font-semibold text-blue-600">{s.nota}</span>
-              </div>
-            ))}
-          </div>
+          <h2 className="font-semibold text-gray-700 mb-4">Progresso geral</h2>
+          {!loadingStats && stats && (
+            <>
+              <ProgressBar
+                label="Taxa de conclusão"
+                value={
+                  (stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos > 0
+                    ? Math.round(
+                        ((stats as StatsAluno).cursosConcluidos /
+                          ((stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos)) *
+                          100,
+                      )
+                    : 0
+                }
+                color="green"
+              />
+              <p className="text-xs text-gray-400 mt-3">
+                {(stats as StatsAluno).cursosConcluidos} de{' '}
+                {(stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos} cursos concluídos
+              </p>
+            </>
+          )}
         </div>
       </div>
     </>
   )
 }
 
-function DashboardAlunoEJA() {
-  return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <StatCard title="Atividades concluídas" value={8}    trend="up"  trendValue="esta semana" />
-        <StatCard title="Sequência de dias"     value="5 dias" trend="up" trendValue="continue!" />
-      </div>
-      <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h2 className="font-semibold text-gray-700 mb-4">Progresso desta semana</h2>
-        <ProgressBar label="Meta semanal" value={60} color="green" />
-        <p className="text-xs text-gray-400 mt-3">Você está no caminho certo. Faltam 2 atividades para bater a meta!</p>
-      </div>
-    </>
-  )
-}
-
-function DashboardAlunoProf() {
-  return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="Cursos em andamento"  value={2} />
-        <StatCard title="Módulos concluídos"   value={7} trend="up" trendValue="esta semana" />
-        <StatCard title="Certificados emitidos" value={1} />
-      </div>
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Progresso dos cursos</h2>
-          <ProgressBar label="Técnico em Informática" value={68} color="blue" />
-          <div className="mt-3">
-            <ProgressBar label="Eletrotécnica"          value={35} color="yellow" />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Próximas provas práticas</h2>
-          <p className="text-sm text-gray-500">Informática — <strong>20/05 às 09h</strong> — Sala 3B</p>
-        </div>
-      </div>
-    </>
-  )
-}
+/* ── Dashboard do Professor ─────────────────────────────── */
 
 function DashboardProfessor() {
+  const { data: stats, isLoading } = useQuery<StatsProfessor>({
+    queryKey: ['stats'],
+    queryFn: getStats as () => Promise<StatsProfessor>,
+  })
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Turmas ativas"         value={4} />
-        <StatCard title="Alunos acompanhados"   value={112} />
-        <StatCard title="Provas criadas"         value={9}  trend="up" trendValue="+1 esta semana" />
-        <StatCard title="Alunos em atenção"      value={6}  trend="down" trendValue="abaixo da média" />
-      </div>
-      <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h2 className="font-semibold text-gray-700 mb-4">Tópicos com maior taxa de erros</h2>
-        <div className="space-y-3">
-          <ProgressBar label="Funções do 2º grau"  value={68} color="red" />
-          <ProgressBar label="Análise Combinatória" value={57} color="yellow" />
-          <ProgressBar label="Geometria Espacial"   value={44} color="yellow" />
+      {isLoading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} />
+          <StatCard title="Alunos acompanhados"   value={stats?.alunosAtivos ?? 0} />
+          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} />
+          <StatCard title="Cursos concluídos"     value={stats?.totalConcluidos ?? 0} trend="up" />
         </div>
-        <p className="text-xs text-gray-400 mt-2">Percentual de erros por tópico nos últimos 30 dias.</p>
+      )}
+
+      <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 className="font-semibold text-gray-700 mb-4">Taxa de conclusão geral</h2>
+        {!isLoading && stats && (
+          <>
+            <ProgressBar
+              label="Alunos que concluíram"
+              value={
+                stats.totalInscricoes > 0
+                  ? Math.round((stats.totalConcluidos / stats.totalInscricoes) * 100)
+                  : 0
+              }
+              color="green"
+            />
+            <p className="text-xs text-gray-400 mt-2">
+              {stats.totalConcluidos} de {stats.totalInscricoes} inscrições concluídas
+            </p>
+          </>
+        )}
       </div>
     </>
   )
 }
 
-function DashboardAdminEscola() {
-  return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Alunos matriculados"  value={640} />
-        <StatCard title="Turmas ativas"        value={22} />
-        <StatCard title="Professores"          value={34} />
-        <StatCard title="Média institucional"  value="68%" trend="up" trendValue="+3 pts vs. mês ant." />
-      </div>
-      <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h2 className="font-semibold text-gray-700 mb-4">Adesão à plataforma</h2>
-        <ProgressBar label="Alunos com acesso ativo" value={81} color="green" />
-        <div className="mt-3">
-          <ProgressBar label="Professores com acesso ativo" value={94} color="green" />
-        </div>
-      </div>
-    </>
-  )
-}
+/* ── Dashboard Admin ────────────────────────────────────── */
 
-function DashboardAdminSeed() {
+function DashboardAdmin() {
+  const { data: stats, isLoading } = useQuery<StatsAdmin>({
+    queryKey: ['stats'],
+    queryFn: getStats as () => Promise<StatsAdmin>,
+  })
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Escolas na plataforma" value={182} trend="up"  trendValue="+8 este mês" />
-        <StatCard title="Alunos ativos"          value="48 mil" />
-        <StatCard title="Professores"            value="3.200" />
-        <StatCard title="Média estadual"         value="64%" trend="up" trendValue="+2 pts" />
-      </div>
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Desempenho por regional</h2>
-          <div className="space-y-3">
-            <ProgressBar label="Regional Maceió"   value={72} color="green" />
-            <ProgressBar label="Regional Arapiraca" value={61} color="blue" />
-            <ProgressBar label="Regional Palmeira" value={55} color="yellow" />
-          </div>
+      {isLoading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Total de alunos"       value={stats?.totalAlunos ?? 0} />
+          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} />
+          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} />
+          <StatCard title="Conclusões"            value={stats?.totalConcluidos ?? 0} trend="up" />
         </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-700 mb-4">Alertas operacionais</h2>
-          <div className="space-y-2 text-sm text-gray-600">
-            <p>⚠️ 3 escolas abaixo de 50% de adesão</p>
-            <p>⚠️ Relatório mensal pendente de 7 escolas</p>
-            <p>✅ Exportação de dados LGPD em dia</p>
-          </div>
+      )}
+
+      {!isLoading && stats && (
+        <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <h2 className="font-semibold text-gray-700 mb-4">Taxa de conclusão da plataforma</h2>
+          <ProgressBar
+            label="Conclusões"
+            value={
+              stats.totalInscricoes > 0
+                ? Math.round((stats.totalConcluidos / stats.totalInscricoes) * 100)
+                : 0
+            }
+            color="green"
+          />
+          <StatusBanner variant="info" >
+            {stats.totalAlunos} alunos ativos em {stats.totalCursos} cursos disponíveis.
+          </StatusBanner>
         </div>
-      </div>
+      )}
     </>
   )
 }
@@ -170,12 +198,12 @@ function DashboardAdminSeed() {
 /* ── Dispatcher ─────────────────────────────────────────── */
 
 const DASHBOARD_MAP: Partial<Record<Perfil, () => ReactElement>> = {
-  ALUNO_EM:    DashboardAlunoEM,
-  ALUNO_EJA:   DashboardAlunoEJA,
-  ALUNO_PROF:  DashboardAlunoProf,
+  ALUNO_EM:    DashboardAluno,
+  ALUNO_EJA:   DashboardAluno,
+  ALUNO_PROF:  DashboardAluno,
   PROFESSOR:   DashboardProfessor,
-  ADMIN_ESCOLA: DashboardAdminEscola,
-  ADMIN_SEED:  DashboardAdminSeed,
+  ADMIN_ESCOLA: DashboardAdmin,
+  ADMIN_SEED:  DashboardAdmin,
 }
 
 export default function DashboardPage() {

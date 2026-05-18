@@ -85,6 +85,61 @@ export async function listarCursos(): Promise<Curso[]> {
   return data
 }
 
+export interface Inscricao {
+  id: string
+  alunoId: string
+  cursoId: string
+  nomeCurso: string
+  descricaoCurso: string
+  dataInscricao: string
+  concluido: boolean
+}
+
+export async function listarMinhasInscricoes(): Promise<Inscricao[]> {
+  const { data } = await api.get<Inscricao[]>('/inscricoes/minhas')
+  return data
+}
+
+export async function inscreverEmCurso(cursoId: string): Promise<Inscricao> {
+  const { data } = await api.post<Inscricao>('/inscricoes', { cursoId })
+  return data
+}
+
+export async function concluirInscricao(inscricaoId: string): Promise<Inscricao> {
+  const { data } = await api.put<Inscricao>(`/inscricoes/${inscricaoId}/concluir`)
+  return data
+}
+
+/* ── Stats (ms-cursos) ──────────────────────────────────── */
+
+export interface StatsAluno {
+  cursosAtivos: number
+  cursosConcluidos: number
+  certificados: number
+  totalCursos: number
+}
+
+export interface StatsProfessor {
+  totalCursos: number
+  totalInscricoes: number
+  totalConcluidos: number
+  alunosAtivos: number
+}
+
+export interface StatsAdmin {
+  totalCursos: number
+  totalInscricoes: number
+  totalConcluidos: number
+  totalAlunos: number
+}
+
+export type Stats = StatsAluno | StatsProfessor | StatsAdmin
+
+export async function getStats(): Promise<Stats> {
+  const { data } = await api.get<Stats>('/stats')
+  return data
+}
+
 /* ── Certificados (ms-certificados) ────────────────────── */
 
 export interface Certificado {
