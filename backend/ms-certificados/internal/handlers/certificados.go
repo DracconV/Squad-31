@@ -19,11 +19,6 @@ func NewCertificadoHandler(db *gorm.DB) *CertificadoHandler {
 	return &CertificadoHandler{db: db}
 }
 
-// GET /verificar-certificado/:qr
-//
-// Endpoint público — qualquer pessoa pode validar a autenticidade
-// de um certificado escaneando o QR Code. Não expõe dados sensíveis
-// do aluno, só confirma se o certificado existe e está válido.
 func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	qr := c.Param("qr")
 	if qr == "" {
@@ -57,17 +52,11 @@ func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"valido":    true,
 		"emitidoEm": cert.EmitidoEm,
-		// Nome do aluno e curso virão de um JOIN quando integrarmos
-		// com ms-cursos / ms-autenticacao. Por enquanto só o id.
 		"alunoId":   cert.AlunoID,
 		"cursoId":   cert.CursoID,
 	})
 }
 
-// GET /certificados/:aluno/:curso
-//
-// Endpoint autenticado: retorna o certificado de um aluno num curso.
-// O front usa para baixar o PDF (campo urlPdf) ou exibir o QR.
 func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.Param("aluno"))
 	if err != nil {
@@ -77,6 +66,15 @@ func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	cursoID, err := uuid.Parse(c.Param("curso"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"erro": "curso inválido"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	perfil := c.GetString("perfil")
+	isAdmin := perfil == "ADMIN_SEED" || perfil == "ADMIN_ESCOLA"
+
+	if !isAdmin && alunoID.String() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"erro": "acesso negado"})
 		return
 	}
 
