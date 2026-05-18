@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { StatCard } from '../components/StatCard'
 import { ProgressBar } from '../components/ProgressBar'
@@ -168,7 +169,7 @@ function DashboardAdminSeed() {
 
 /* ── Dispatcher ─────────────────────────────────────────── */
 
-const DASHBOARD_MAP: Partial<Record<Perfil, () => JSX.Element>> = {
+const DASHBOARD_MAP: Partial<Record<Perfil, () => ReactElement>> = {
   ALUNO_EM:    DashboardAlunoEM,
   ALUNO_EJA:   DashboardAlunoEJA,
   ALUNO_PROF:  DashboardAlunoProf,
