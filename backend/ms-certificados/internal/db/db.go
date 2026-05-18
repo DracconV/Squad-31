@@ -9,8 +9,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Open abre a conexão com o Postgres compartilhado.
-// Schema é controlado pelo Flyway (ms-autenticacao).
 func Open() (*gorm.DB, error) {
 	host := envDefault("DB_HOST", "localhost")
 	port := envDefault("DB_PORT", "5432")
