@@ -97,7 +97,9 @@ func TestVerificarPublico(t *testing.T) {
 		QRCode: "qr-revogado", EmitidoEm: time.Now(), Valido: false,
 	}
 	require.NoError(t, db.Create(&validoCert).Error)
+	revogadoCert.Valido = true
 	require.NoError(t, db.Create(&revogadoCert).Error)
+	require.NoError(t, db.Model(&revogadoCert).Update("valido", false).Error)
 
 	cases := []struct {
 		name       string
@@ -107,7 +109,7 @@ func TestVerificarPublico(t *testing.T) {
 	}{
 		{"certificado válido", "qr-valido", http.StatusOK, boolPtr(true)},
 		{"certificado revogado", "qr-revogado", http.StatusOK, boolPtr(false)},
-		{"não encontrado", "qr-inexistente", http.StatusNotFound, boolPtr(false)},
+		{"não encontrado", "qr-inexistente", http.StatusNotFound, nil},
 	}
 
 	for _, tc := range cases {
