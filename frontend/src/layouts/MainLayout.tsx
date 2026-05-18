@@ -30,7 +30,7 @@ function getPageTitle(pathname: string): string {
 }
 
 export default function MainLayout() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -40,7 +40,7 @@ export default function MainLayout() {
   const title = getPageTitle(location.pathname)
 
   function handleLogout() {
-    logout()
+    signOut()
     navigate('/login', { replace: true })
   }
 

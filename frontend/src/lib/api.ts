@@ -69,3 +69,55 @@ export async function primeiroAcesso(
 ): Promise<void> {
   await api.post('/auth/primeiro-acesso', payload)
 }
+
+/* ── Cursos (ms-cursos) ─────────────────────────────────── */
+
+export interface Curso {
+  id: string
+  nome: string
+  descricao: string
+  ativo: boolean
+  criadoEm: string
+}
+
+export async function listarCursos(): Promise<Curso[]> {
+  const { data } = await api.get<Curso[]>('/cursos')
+  return data
+}
+
+/* ── Certificados (ms-certificados) ────────────────────── */
+
+export interface Certificado {
+  id: string
+  alunoId: string
+  cursoId: string
+  qrCode: string
+  emitidoEm: string
+  valido: boolean
+}
+
+/**
+ * Busca o certificado de um aluno em um curso específico.
+ * Retorna null se não encontrado (404).
+ */
+export async function buscarCertificado(
+  alunoId: string,
+  cursoId: string,
+): Promise<Certificado | null> {
+  try {
+    const { data } = await api.get<Certificado>(
+      `/certificados/${alunoId}/${cursoId}`,
+    )
+    return data
+  } catch (err: unknown) {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'response' in err &&
+      (err as { response?: { status?: number } }).response?.status === 404
+    ) {
+      return null
+    }
+    throw err
+  }
+}
