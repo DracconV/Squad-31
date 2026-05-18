@@ -1,79 +1,78 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import LoadingScreen from './components/LoadingScreen'
+import MainLayout from './layouts/MainLayout'
 import { useAuth } from './contexts/AuthContext'
-import { ROTA_POR_PERFIL } from './lib/auth'
-import LoginPage from './pages/LoginPage'
-import SemAcessoPage from './pages/SemAcessoPage'
-import PortalHome from './portals/PortalHome'
+import { getNavConfig } from './config/navigation'
+import type { Perfil } from './lib/auth'
 
-/**
- * Redireciona o usuário logado para o portal correspondente ao
- * seu perfil. Se não estiver logado, manda para /login.
- */
+import LoginPage        from './pages/LoginPage'
+import SemAcessoPage    from './pages/SemAcessoPage'
+import DashboardPage    from './pages/DashboardPage'
+import SimuladosPage    from './pages/SimuladosPage'
+import SimuladoPage     from './pages/SimuladoPage'
+import BancoQuestoesPage from './pages/BancoQuestoesPage'
+import HistoricoPage    from './pages/HistoricoPage'
+import PerformancePage  from './pages/PerformancePage'
+import NotasPage        from './pages/NotasPage'
+import LocalProvaPage   from './pages/LocalProvaPage'
+import CertificadosPage from './pages/CertificadosPage'
+import ProvasPage       from './pages/ProvasPage'
+import CriarProvaPage   from './pages/CriarProvaPage'
+import TurmasPage       from './pages/TurmasPage'
+import RelatoriosPage   from './pages/RelatoriosPage'
+import GestaoUsuariosPage from './pages/GestaoUsuariosPage'
+import EscolasPage      from './pages/EscolasPage'
+import AvaliacoesPage   from './pages/AvaliacoesPage'
+import PerfilPage       from './pages/PerfilPage'
+
+/** Redireciona para o dashboard do perfil após login */
 function RootRedirect() {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
-  return <Navigate to={ROTA_POR_PERFIL[user.perfil] ?? '/login'} replace />
+  const { defaultPath } = getNavConfig(user.perfil as Perfil)
+  return <Navigate to={defaultPath} replace />
 }
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="/login" element={<LoginPage />} />
+      {/* Públicas */}
+      <Route path="/login"      element={<LoginPage />} />
       <Route path="/sem-acesso" element={<SemAcessoPage />} />
 
-      <Route
-        path="/aluno-em/*"
-        element={
-          <ProtectedRoute perfis={['ALUNO_EM']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/aluno-eja/*"
-        element={
-          <ProtectedRoute perfis={['ALUNO_EJA']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/aluno-prof/*"
-        element={
-          <ProtectedRoute perfis={['ALUNO_PROF']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/professor/*"
-        element={
-          <ProtectedRoute perfis={['PROFESSOR']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin-escola/*"
-        element={
-          <ProtectedRoute perfis={['ADMIN_ESCOLA']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin-seed/*"
-        element={
-          <ProtectedRoute perfis={['ADMIN_SEED']}>
-            <PortalHome />
-          </ProtectedRoute>
-        }
-      />
+      {/* Raiz → redireciona para dashboard */}
+      <Route path="/" element={<RootRedirect />} />
 
+      {/* Área autenticada — todas as rotas dentro do MainLayout */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="dashboard"       element={<DashboardPage />} />
+        <Route path="simulados"       element={<SimuladosPage />} />
+        <Route path="simulados/:id"   element={<SimuladoPage />} />
+        <Route path="banco-questoes"  element={<BancoQuestoesPage />} />
+        <Route path="historico"       element={<HistoricoPage />} />
+        <Route path="desempenho"      element={<PerformancePage />} />
+        <Route path="notas"           element={<NotasPage />} />
+        <Route path="local-prova"     element={<LocalProvaPage />} />
+        <Route path="certificados"    element={<CertificadosPage />} />
+        <Route path="provas"          element={<ProvasPage />} />
+        <Route path="criar-prova"     element={<CriarProvaPage />} />
+        <Route path="turmas"          element={<TurmasPage />} />
+        <Route path="relatorios"      element={<RelatoriosPage />} />
+        <Route path="gestao-usuarios" element={<GestaoUsuariosPage />} />
+        <Route path="escolas"         element={<EscolasPage />} />
+        <Route path="avaliacoes"      element={<AvaliacoesPage />} />
+        <Route path="perfil"          element={<PerfilPage />} />
+      </Route>
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
