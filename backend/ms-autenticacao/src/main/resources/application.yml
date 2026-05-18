@@ -3,9 +3,9 @@ spring:
     name: ms-autenticacao
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/seed_educa
-    username: seed_user
-    password: seed_pass
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:seed_educa}
+    username: ${DB_USER:seed_user}
+    password: ${DB_PASSWORD:seed_pass}
     driver-class-name: org.postgresql.Driver
 
   jpa:
