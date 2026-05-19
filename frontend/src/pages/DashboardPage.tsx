@@ -82,27 +82,20 @@ function DashboardAluno() {
 
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-700 mb-4">Progresso geral</h2>
-          {!loadingStats && stats && (
-            <>
-              <ProgressBar
-                label="Taxa de conclusão"
-                value={
-                  (stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos > 0
-                    ? Math.round(
-                        ((stats as StatsAluno).cursosConcluidos /
-                          ((stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos)) *
-                          100,
-                      )
-                    : 0
-                }
-                color="green"
-              />
-              <p className="text-xs text-gray-400 mt-3">
-                {(stats as StatsAluno).cursosConcluidos} de{' '}
-                {(stats as StatsAluno).cursosAtivos + (stats as StatsAluno).cursosConcluidos} cursos concluídos
-              </p>
-            </>
-          )}
+          {!loadingStats && stats && (() => {
+            const ativos     = (stats as StatsAluno).cursosAtivos     ?? 0
+            const concluidos = (stats as StatsAluno).cursosConcluidos ?? 0
+            const total      = ativos + concluidos
+            const pct        = total > 0 ? Math.round((concluidos / total) * 100) : 0
+            return (
+              <>
+                <ProgressBar label="Taxa de conclusão" value={pct} color="green" />
+                <p className="text-xs text-gray-400 mt-3">
+                  {concluidos} de {total} cursos concluídos
+                </p>
+              </>
+            )
+          })()}
         </div>
       </div>
     </>
