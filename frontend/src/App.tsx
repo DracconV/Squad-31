@@ -24,6 +24,7 @@ import RelatoriosPage   from './pages/RelatoriosPage'
 import GestaoUsuariosPage from './pages/GestaoUsuariosPage'
 import EscolasPage      from './pages/EscolasPage'
 import AvaliacoesPage   from './pages/AvaliacoesPage'
+import CursosPage       from './pages/CursosPage'
 import PerfilPage       from './pages/PerfilPage'
 
 /** Redireciona para o dashboard do perfil após login */
@@ -61,6 +62,7 @@ function App() {
         <Route path="desempenho"      element={<PerformancePage />} />
         <Route path="notas"           element={<NotasPage />} />
         <Route path="local-prova"     element={<LocalProvaPage />} />
+        <Route path="cursos"          element={<CursosPage />} />
         <Route path="certificados"    element={<CertificadosPage />} />
         <Route path="provas"          element={<ProvasPage />} />
         <Route path="criar-prova"     element={<CriarProvaPage />} />

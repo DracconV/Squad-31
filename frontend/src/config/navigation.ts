@@ -17,6 +17,7 @@ const NAV: Record<Perfil, NavConfig> = {
     defaultPath: '/dashboard',
     items: [
       { label: 'Início',            path: '/dashboard' },
+      { label: 'Cursos',            path: '/cursos' },
       { label: 'Simulados',         path: '/simulados', aliases: ['/simulados/'] },
       { label: 'Banco de questões', path: '/banco-questoes' },
       { label: 'Histórico',         path: '/historico' },
@@ -32,6 +33,7 @@ const NAV: Record<Perfil, NavConfig> = {
     defaultPath: '/dashboard',
     items: [
       { label: 'Início',            path: '/dashboard' },
+      { label: 'Cursos',            path: '/cursos' },
       { label: 'Simulados',         path: '/simulados', aliases: ['/simulados/'] },
       { label: 'Banco de questões', path: '/banco-questoes' },
       { label: 'Histórico',         path: '/historico' },
@@ -47,6 +49,7 @@ const NAV: Record<Perfil, NavConfig> = {
     defaultPath: '/dashboard',
     items: [
       { label: 'Início',            path: '/dashboard' },
+      { label: 'Cursos',            path: '/cursos' },
       { label: 'Simulados',         path: '/simulados', aliases: ['/simulados/'] },
       { label: 'Banco de questões', path: '/banco-questoes' },
       { label: 'Histórico',         path: '/historico' },
@@ -62,6 +65,7 @@ const NAV: Record<Perfil, NavConfig> = {
     defaultPath: '/dashboard',
     items: [
       { label: 'Início',            path: '/dashboard' },
+      { label: 'Cursos',            path: '/cursos' },
       { label: 'Provas',            path: '/provas' },
       { label: 'Criar prova',       path: '/criar-prova' },
       { label: 'Banco de questões', path: '/banco-questoes' },
