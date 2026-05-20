@@ -44,7 +44,7 @@ func main() {
 	jobs := make(chan kafkapkg.EventoInscricaoConcluida, 100)
 
 	brokers := strings.Split(envDefault("KAFKA_BROKERS", "localhost:9092"), ",")
-	topic := envDefault("KAFKA_TOPIC_INSCRICAO", "inscricao_curso.concluida")
+	topic := envDefault("KAFKA_TOPIC", "inscricao-concluida")
 	groupID := envDefault("KAFKA_GROUP_ID", "ms-certificados")
 
 	consumer := kafkapkg.NewConsumer(brokers, topic, groupID, jobs)
@@ -57,7 +57,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:8080"},
+		AllowOrigins:     []string{"http://localhost", "http://localhost:80", "http://localhost:5173", "http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,

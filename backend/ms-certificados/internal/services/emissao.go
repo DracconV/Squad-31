@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	kafkapkg "github.com/seed-educa/ms-certificados/internal/kafka"
 	"github.com/seed-educa/ms-certificados/internal/models"
@@ -116,8 +117,13 @@ func (s *EmissaoService) Emitir(ctx context.Context, evento kafkapkg.EventoInscr
 		EmitidoEm: time.Now(),
 		Valido:    true,
 	}
-	if err := s.db.Create(&cert).Error; err != nil {
-		return fmt.Errorf("db: %w", err)
+	result := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cert)
+	if result.Error != nil {
+		return fmt.Errorf("db: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		log.Printf("emissao: certificado já existia (corrida de workers), ignorando aluno=%s curso=%s", alunoID, cursoID)
+		return nil
 	}
 
 	metricEmitidos.Inc()

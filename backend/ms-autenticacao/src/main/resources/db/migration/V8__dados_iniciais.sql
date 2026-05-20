@@ -19,6 +19,17 @@ INSERT INTO disciplina (id, nome) VALUES
 INSERT INTO instituicao (id, nome, municipio, codigo_inep) VALUES
     ('00000000-0000-0000-0000-000000000001', 'Escola Estadual de Desenvolvimento', 'Aracaju', '28000001');
 
+-- Cursos de desenvolvimento
+INSERT INTO curso (id, nome, descricao, ativo) VALUES
+    (gen_random_uuid(), 'Matematica Basica',  'Fundamentos de matematica para o ensino medio: algebra, geometria e estatistica.', true),
+    (gen_random_uuid(), 'Lingua Portuguesa',  'Interpretacao de texto, gramatica e redacao para o ENEM.', true),
+    (gen_random_uuid(), 'Historia do Brasil', 'Do periodo colonial a republica contemporanea.', true),
+    (gen_random_uuid(), 'Biologia Celular',   'Celula, metabolismo, genetica e evolucao.', true),
+    (gen_random_uuid(), 'Fisica Mecanica',    'Cinematica, dinamica, energia e ondas.', true),
+    (gen_random_uuid(), 'Quimica Organica',   'Funcoes organicas, reacoes e aplicacoes do cotidiano.', true),
+    (gen_random_uuid(), 'Ingles Basico',      'Vocabulario, gramatica e conversacao para iniciantes.', true),
+    (gen_random_uuid(), 'Redacao ENEM',       'Tecnicas de dissertacao-argumentativa e repertorio sociocultural.', true);
+
 -- Usuários de desenvolvimento — todos com senha: seed@2025
 INSERT INTO usuario (id, nome, matricula, senha_hash, perfil, primeiro_acesso, instituicao_id) VALUES
     (
