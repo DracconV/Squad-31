@@ -1,3 +1,12 @@
+// @title           SEED Educa — ms-cursos
+// @version         1.0
+// @description     API de cursos, inscrições e certificados do SEED Educa. Autentique-se com o token JWT obtido em /auth/login.
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
+// @description     Formato: Bearer {token}
 package main
 
 import (
@@ -13,7 +22,10 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "github.com/seed-educa/ms-cursos/docs"
 	"github.com/seed-educa/ms-cursos/internal/db"
 	"github.com/seed-educa/ms-cursos/internal/handlers"
 	kafkapkg "github.com/seed-educa/ms-cursos/internal/kafka"
@@ -56,6 +68,9 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// ── Swagger UI ──────────────────────────────────────────
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "UP", "service": "ms-cursos"})
 	})
@@ -67,7 +82,9 @@ func main() {
 	// Rotas protegidas por JWT
 	auth := r.Group("/", middleware.JWT())
 	{
-		auth.POST("/cursos", cursoHandler.Criar) // PROFESSOR / ADMIN
+		auth.POST("/cursos", cursoHandler.Criar)
+		auth.PUT("/cursos/:id", cursoHandler.Atualizar)
+		auth.DELETE("/cursos/:id", cursoHandler.Desativar)
 		auth.POST("/inscricoes", inscricaoHandler.Inscrever)
 		auth.GET("/inscricoes/minhas", inscricaoHandler.ListarMinhas)
 		auth.PUT("/inscricoes/:id/concluir", inscricaoHandler.Concluir)

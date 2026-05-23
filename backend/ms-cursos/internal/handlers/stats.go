@@ -16,7 +16,14 @@ func NewStatsHandler(db *gorm.DB) *StatsHandler {
 	return &StatsHandler{db: db}
 }
 
-// GET /stats — retorna contadores para o dashboard do usuário autenticado.
+// Get godoc
+// @Summary      Retorna estatísticas do usuário autenticado
+// @Description  Retorna contadores diferentes por perfil: aluno vê seus cursos, professor vê totais da plataforma, admin vê métricas globais.
+// @Tags         Estatísticas
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]int64
+// @Router       /stats [get]
 func (h *StatsHandler) Get(c *gin.Context) {
 	perfil := c.GetString("perfil")
 	userID := c.GetString("userID")
@@ -48,10 +55,10 @@ func (h *StatsHandler) statsAluno(c *gin.Context, userID string) {
 	h.db.Table("curso").Where("ativo = true").Count(&totalCursos)
 
 	c.JSON(http.StatusOK, gin.H{
-		"cursosAtivos":    totalInscricoes - totalConcluidos,
+		"cursosAtivos":     totalInscricoes - totalConcluidos,
 		"cursosConcluidos": totalConcluidos,
-		"certificados":    totalConcluidos,
-		"totalCursos":     totalCursos,
+		"certificados":     totalConcluidos,
+		"totalCursos":      totalCursos,
 	})
 }
 

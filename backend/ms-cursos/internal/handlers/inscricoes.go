@@ -24,7 +24,19 @@ func NewInscricaoHandler(db *gorm.DB, producer *kafkapkg.Producer) *InscricaoHan
 	return &InscricaoHandler{db: db, producer: producer}
 }
 
-// POST /inscricoes — inscreve o aluno autenticado em um curso.
+// Inscrever godoc
+// @Summary      Inscreve o aluno autenticado em um curso
+// @Description  Idempotente — retorna 409 se o aluno já estiver inscrito.
+// @Tags         Inscrições
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      object{cursoId=string}  true  "UUID do curso"
+// @Success      201   {object}  models.InscricaoCurso
+// @Failure      400   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      409   {object}  map[string]string
+// @Router       /inscricoes [post]
 func (h *InscricaoHandler) Inscrever(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.GetString("userID"))
 	if err != nil {
@@ -77,7 +89,15 @@ func (h *InscricaoHandler) Inscrever(c *gin.Context) {
 	c.JSON(http.StatusCreated, inscricao)
 }
 
-// GET /inscricoes/minhas — lista inscrições do aluno autenticado com nome do curso.
+// ListarMinhas godoc
+// @Summary      Lista inscrições do aluno autenticado
+// @Description  Retorna todas as inscrições com nome e descrição do curso.
+// @Tags         Inscrições
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}   models.InscricaoCurso
+// @Failure      400  {object}  map[string]string
+// @Router       /inscricoes/minhas [get]
 func (h *InscricaoHandler) ListarMinhas(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.GetString("userID"))
 	if err != nil {
@@ -87,7 +107,7 @@ func (h *InscricaoHandler) ListarMinhas(c *gin.Context) {
 
 	type InscricaoComCurso struct {
 		models.InscricaoCurso
-		NomeCurso   string `json:"nomeCurso"`
+		NomeCurso      string `json:"nomeCurso"`
 		DescricaoCurso string `json:"descricaoCurso"`
 	}
 
@@ -109,8 +129,19 @@ func (h *InscricaoHandler) ListarMinhas(c *gin.Context) {
 	c.JSON(http.StatusOK, resultado)
 }
 
-// PUT /inscricoes/:id/concluir — marca como concluída e emite evento Kafka.
-// PROFESSOR e ADMIN podem concluir qualquer inscrição; ALUNO só a própria.
+// Concluir godoc
+// @Summary      Marca inscrição como concluída e dispara geração de certificado
+// @Description  Publica evento no Kafka para o ms-certificados gerar o PDF automaticamente. PROFESSOR e ADMIN podem concluir qualquer inscrição; ALUNO só a própria.
+// @Tags         Inscrições
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      string  true  "UUID da inscrição"
+// @Success      200  {object}  models.InscricaoCurso
+// @Failure      400  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Router       /inscricoes/{id}/concluir [put]
 func (h *InscricaoHandler) Concluir(c *gin.Context) {
 	inscricaoID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
