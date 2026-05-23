@@ -155,6 +155,22 @@ export interface Certificado {
  * Busca o certificado de um aluno em um curso específico.
  * Retorna null se não encontrado (404).
  */
+/* ── Questões (ms-questoes) ─────────────────────────────────── */
+
+export interface QuestaoStats {
+  total: number
+}
+
+export async function getQuestaoStats(): Promise<QuestaoStats> {
+  const { data } = await api.get<QuestaoStats>('/questoes/stats')
+  return data
+}
+
+export async function triggerImportarEnem(): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>('/questoes/importar')
+  return data
+}
+
 export async function buscarCertificado(
   alunoId: string,
   cursoId: string,

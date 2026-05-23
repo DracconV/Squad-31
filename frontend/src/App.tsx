@@ -6,8 +6,9 @@ import { useAuth } from './contexts/AuthContext'
 import { getNavConfig } from './config/navigation'
 import type { Perfil } from './lib/auth'
 
-import LoginPage        from './pages/LoginPage'
-import SemAcessoPage    from './pages/SemAcessoPage'
+import LoginPage           from './pages/LoginPage'
+import PrimeiroAcessoPage  from './pages/PrimeiroAcessoPage'
+import SemAcessoPage       from './pages/SemAcessoPage'
 import DashboardPage    from './pages/DashboardPage'
 import SimuladosPage    from './pages/SimuladosPage'
 import SimuladoPage     from './pages/SimuladoPage'
@@ -40,8 +41,9 @@ function App() {
   return (
     <Routes>
       {/* Públicas */}
-      <Route path="/login"      element={<LoginPage />} />
-      <Route path="/sem-acesso" element={<SemAcessoPage />} />
+      <Route path="/login"           element={<LoginPage />} />
+      <Route path="/primeiro-acesso" element={<PrimeiroAcessoPage />} />
+      <Route path="/sem-acesso"      element={<SemAcessoPage />} />
 
       {/* Raiz → redireciona para dashboard */}
       <Route path="/" element={<RootRedirect />} />

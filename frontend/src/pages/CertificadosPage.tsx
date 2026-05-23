@@ -1,13 +1,34 @@
+import { useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
-import { buscarCertificado, listarCursos, type Certificado, type Curso } from '../lib/api'
+import { api, buscarCertificado, listarCursos, type Certificado, type Curso } from '../lib/api'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBanner } from '../components/StatusBanner'
 
 /* ── Card de certificado ──────────────────────────────────── */
 
-function CertificadoCard({ cert, curso }: { cert: Certificado; curso: Curso }) {
+function CertificadoCard({ cert, curso, alunoId }: { cert: Certificado; curso: Curso; alunoId: string }) {
   const emitidoEm = new Date(cert.emitidoEm).toLocaleDateString('pt-BR')
+  const [baixando, setBaixando] = useState(false)
+
+  async function handleDownload() {
+    setBaixando(true)
+    try {
+      const resp = await api.get(`/certificados/${alunoId}/${curso.id}/pdf`, {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `certificado-${curso.nome.replace(/\s+/g, '-')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Não foi possível baixar o PDF. Tente novamente.')
+    } finally {
+      setBaixando(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
@@ -28,18 +49,29 @@ function CertificadoCard({ cert, curso }: { cert: Certificado; curso: Curso }) {
       </div>
 
       {cert.valido && (
-        <div className="flex gap-2 mt-1">
-          <a
-            href={`/verificar-certificado/${cert.qrCode}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-blue-600 hover:underline"
+        <>
+          <button
+            onClick={handleDownload}
+            disabled={baixando}
+            className="w-full py-2 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium
+                       hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            🔗 Verificar autenticidade
-          </a>
-          <span className="text-gray-300">·</span>
-          <span className="text-xs text-gray-400 font-mono">{cert.qrCode}</span>
-        </div>
+            {baixando ? 'Baixando...' : '📄 Baixar certificado PDF'}
+          </button>
+
+          <div className="flex gap-2 items-center">
+            <a
+              href={`/verificar-certificado/${cert.qrCode}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-blue-600 hover:underline"
+            >
+              🔗 Verificar autenticidade
+            </a>
+            <span className="text-gray-300">·</span>
+            <span className="text-xs text-gray-400 font-mono truncate">{cert.qrCode}</span>
+          </div>
+        </>
       )}
 
       {!cert.valido && (
@@ -138,7 +170,7 @@ export default function CertificadosPage() {
       {!isLoading && certificados.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {certificados.map(({ cert, curso }) => (
-            <CertificadoCard key={cert.id} cert={cert} curso={curso} />
+            <CertificadoCard key={cert.id} cert={cert} curso={curso} alunoId={user!.id} />
           ))}
         </div>
       )}
