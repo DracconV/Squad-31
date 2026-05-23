@@ -55,6 +55,20 @@ func (s *MinioStorage) UploadPDF(ctx context.Context, nome string, data []byte) 
 	return fmt.Sprintf("/certificados/%s", nome), nil
 }
 
+func (s *MinioStorage) GetPDF(ctx context.Context, objectName string) ([]byte, error) {
+	obj, err := s.client.GetObject(ctx, s.bucket, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("minio get: %w", err)
+	}
+	defer obj.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(obj); err != nil {
+		return nil, fmt.Errorf("minio read: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
 func envDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v

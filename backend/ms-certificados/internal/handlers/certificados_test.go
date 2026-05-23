@@ -60,11 +60,12 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	cert := handlers.NewCertificadoHandler(db)
+	cert := handlers.NewCertificadoHandler(db, nil) // nil: storage não usado nesses testes
 	r.GET("/verificar-certificado/:qr", cert.VerificarPublico)
 
 	auth := r.Group("/", middleware.JWTWithSecret(testSecret))
 	auth.GET("/certificados/:aluno/:curso", cert.BuscarPorAlunoCurso)
+	auth.GET("/certificados/:aluno/:curso/pdf", cert.DownloadPDF)
 
 	return r
 }

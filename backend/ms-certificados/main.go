@@ -68,11 +68,12 @@ func main() {
 	})
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	cert := handlers.NewCertificadoHandler(conn)
+	cert := handlers.NewCertificadoHandler(conn, minioStorage)
 	r.GET("/verificar-certificado/:qr", cert.VerificarPublico)
 
 	autenticado := r.Group("/", middleware.JWT())
 	autenticado.GET("/certificados/:aluno/:curso", cert.BuscarPorAlunoCurso)
+	autenticado.GET("/certificados/:aluno/:curso/pdf", cert.DownloadPDF)
 
 	port := envDefault("PORT", "8086")
 	srv := &http.Server{Addr: ":" + port, Handler: r}
