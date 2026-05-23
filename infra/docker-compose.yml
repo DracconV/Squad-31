@@ -89,6 +89,24 @@ services:
       retries: 5
       start_period: 40s
 
+  kafka-init:
+    image: apache/kafka:3.7.0
+    container_name: seed-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+          --create --if-not-exists \
+          --topic inscricao-concluida \
+          --partitions 1 \
+          --replication-factor 1
+        echo "Topico inscricao-concluida garantido."
+    networks:
+      - seed-network
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: seed-kafka-ui
@@ -245,6 +263,36 @@ services:
     networks:
       - seed-network
 
+  ms-questoes:
+    build:
+      context: ../backend/ms-questoes
+      dockerfile: Dockerfile
+    container_name: seed-ms-questoes
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ENEM_AUTO_IMPORT: "true"
+    ports:
+      - "8087:8087"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
   api-gateway:
     build:
       context: ../backend/api-gateway
@@ -262,6 +310,7 @@ services:
       MS_AUTENTICACAO_URL: http://ms-autenticacao:8081
       MS_CURSOS_URL: http://ms-cursos:8085
       MS_CERTIFICADOS_URL: http://ms-certificados:8086
+      MS_QUESTOES_URL: http://ms-questoes:8087
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8080:8080"
