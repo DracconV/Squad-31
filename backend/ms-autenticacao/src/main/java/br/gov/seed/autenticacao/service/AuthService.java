@@ -20,13 +20,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public LoginResponse login(LoginRequest request) {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.matricula(), request.senha())
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("ERRO AUTH: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-        }
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.matricula(), request.senha())
+        );
 
         Usuario usuario = usuarioRepository.findByMatricula(request.matricula())
                 .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));

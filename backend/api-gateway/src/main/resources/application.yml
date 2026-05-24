@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: api-gateway
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - PreserveHostHeader
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@remoteAddressKeyResolver}"
+          routes:
+            - id: ms-autenticacao
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@remoteAddressKeyResolver}"
+
+            - id: ms-cursos
+              uri: ${MS_CURSOS_URL:http://localhost:8085}
+              predicates:
+                - Path=/cursos/**,/inscricoes/**,/stats/**,/swagger/**
+
+            - id: ms-certificados
+              uri: ${MS_CERTIFICADOS_URL:http://localhost:8086}
+              predicates:
+                - Path=/certificados/**,/verificar-certificado/**
+
+            - id: ms-questoes
+              uri: ${MS_QUESTOES_URL:http://localhost:8087}
+              predicates:
+                - Path=/questoes/**,/disciplinas/**
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      access: unrestricted
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    br.gov.seed: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: INFO
