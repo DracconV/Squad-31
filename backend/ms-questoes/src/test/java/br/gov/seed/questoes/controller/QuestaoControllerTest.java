@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -46,10 +46,10 @@ class QuestaoControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private QuestaoService questaoService;
 
-    @MockBean
+    @MockitoBean
     private EnemImporterService enemImporterService;
 
     // ── Helpers ───────────────────────────────────────────────
@@ -104,7 +104,7 @@ class QuestaoControllerTest {
     @Test
     @DisplayName("GET /questoes com filtros retorna 200")
     void listar_comFiltros_retorna200() throws Exception {
-        var page = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+        var page = new PageImpl<QuestaoResponse>(List.of(), PageRequest.of(0, 10), 0);
         when(questaoService.listar(any(), eq("FACIL"), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/questoes?dificuldade=FACIL&size=10")
