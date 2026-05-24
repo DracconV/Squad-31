@@ -9,8 +9,11 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 COPY go.mod go.sum* ./
 COPY . .
 
-# Adiciona dependências do swagger e gera os docs
-RUN go get github.com/swaggo/gin-swagger github.com/swaggo/files && \
+# Adiciona dependências do swagger, testcontainers (testes) e gera os docs
+RUN go get github.com/swaggo/gin-swagger github.com/swaggo/files \
+           github.com/stretchr/testify \
+           github.com/testcontainers/testcontainers-go \
+           github.com/testcontainers/testcontainers-go/modules/postgres && \
     go mod tidy && \
     swag init -g main.go --output docs
 

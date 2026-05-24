@@ -25,6 +25,11 @@ func JWT() gin.HandlerFunc {
 	return jwtWithKey([]byte(secret))
 }
 
+// JWTWithSecret permite injetar um segredo customizado (útil em testes).
+func JWTWithSecret(secret string) gin.HandlerFunc {
+	return jwtWithKey([]byte(secret))
+}
+
 func jwtWithKey(key []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
