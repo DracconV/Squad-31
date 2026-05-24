@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,19 +14,31 @@ import (
 	"github.com/seed-educa/ms-certificados/internal/models"
 )
 
+// PDFStore abstrai o acesso ao armazenamento de PDFs.
+// Implementado por *storage.MinioStorage em produção e por mocks nos testes.
+type PDFStore interface {
+	GetPDF(ctx context.Context, objectName string) ([]byte, error)
+}
+
 type CertificadoHandler struct {
-	db *gorm.DB
+	db      *gorm.DB
+	storage PDFStore
 }
 
-func NewCertificadoHandler(db *gorm.DB) *CertificadoHandler {
-	return &CertificadoHandler{db: db}
+func NewCertificadoHandler(db *gorm.DB, s PDFStore) *CertificadoHandler {
+	return &CertificadoHandler{db: db, storage: s}
 }
 
-// GET /verificar-certificado/:qr
-//
-// Endpoint público — qualquer pessoa pode validar a autenticidade
-// de um certificado escaneando o QR Code. Não expõe dados sensíveis
-// do aluno, só confirma se o certificado existe e está válido.
+// VerificarPublico godoc
+// @Summary      Verifica autenticidade de um certificado pelo QR code
+// @Description  Endpoint público — não requer autenticação. Retorna valido=true se o certificado existe e é válido.
+// @Tags         Certificados
+// @Produce      json
+// @Param        qr   path      string  true  "Código QR do certificado"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Router       /verificar-certificado/{qr} [get]
 func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	qr := c.Param("qr")
 	if qr == "" {
@@ -36,8 +51,8 @@ func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
-				"valido":   false,
-				"motivo":   "certificado não encontrado",
+				"valido": false,
+				"motivo": "certificado não encontrado",
 			})
 			return
 		}
@@ -47,9 +62,9 @@ func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 
 	if !cert.Valido {
 		c.JSON(http.StatusOK, gin.H{
-			"valido":     false,
-			"motivo":     "certificado revogado",
-			"emitidoEm":  cert.EmitidoEm,
+			"valido":    false,
+			"motivo":    "certificado revogado",
+			"emitidoEm": cert.EmitidoEm,
 		})
 		return
 	}
@@ -57,17 +72,24 @@ func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"valido":    true,
 		"emitidoEm": cert.EmitidoEm,
-		// Nome do aluno e curso virão de um JOIN quando integrarmos
-		// com ms-cursos / ms-autenticacao. Por enquanto só o id.
 		"alunoId":   cert.AlunoID,
 		"cursoId":   cert.CursoID,
 	})
 }
 
-// GET /certificados/:aluno/:curso
-//
-// Endpoint autenticado: retorna o certificado de um aluno num curso.
-// O front usa para baixar o PDF (campo urlPdf) ou exibir o QR.
+// BuscarPorAlunoCurso godoc
+// @Summary      Busca certificado de um aluno em um curso
+// @Description  Retorna os metadados do certificado. Aluno só pode ver o próprio; admin vê qualquer um.
+// @Tags         Certificados
+// @Produce      json
+// @Security     BearerAuth
+// @Param        aluno  path      string  true  "UUID do aluno"
+// @Param        curso  path      string  true  "UUID do curso"
+// @Success      200    {object}  models.Certificado
+// @Failure      400    {object}  map[string]string
+// @Failure      403    {object}  map[string]string
+// @Failure      404    {object}  map[string]string
+// @Router       /certificados/{aluno}/{curso} [get]
 func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.Param("aluno"))
 	if err != nil {
@@ -77,6 +99,15 @@ func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	cursoID, err := uuid.Parse(c.Param("curso"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"erro": "curso inválido"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	perfil := c.GetString("perfil")
+	isAdmin := perfil == "ADMIN_SEED" || perfil == "ADMIN_ESCOLA"
+
+	if !isAdmin && alunoID.String() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"erro": "acesso negado"})
 		return
 	}
 
@@ -91,4 +122,68 @@ func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, cert)
+}
+
+// DownloadPDF godoc
+// @Summary      Faz download do PDF do certificado
+// @Description  Retorna o arquivo PDF diretamente do MinIO. Aluno só pode baixar o próprio; admin pode baixar qualquer um.
+// @Tags         Certificados
+// @Produce      application/pdf
+// @Security     BearerAuth
+// @Param        aluno  path      string  true  "UUID do aluno"
+// @Param        curso  path      string  true  "UUID do curso"
+// @Success      200    {file}    binary
+// @Failure      400    {object}  map[string]string
+// @Failure      403    {object}  map[string]string
+// @Failure      404    {object}  map[string]string
+// @Router       /certificados/{aluno}/{curso}/pdf [get]
+func (h *CertificadoHandler) DownloadPDF(c *gin.Context) {
+	alunoID, err := uuid.Parse(c.Param("aluno"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": "aluno inválido"})
+		return
+	}
+	cursoID, err := uuid.Parse(c.Param("curso"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": "curso inválido"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	perfil := c.GetString("perfil")
+	isAdmin := perfil == "ADMIN_SEED" || perfil == "ADMIN_ESCOLA"
+
+	if !isAdmin && alunoID.String() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"erro": "acesso negado"})
+		return
+	}
+
+	var cert models.Certificado
+	err = h.db.First(&cert, "aluno_id = ? AND curso_id = ?", alunoID, cursoID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"erro": "certificado não encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "falha ao buscar certificado"})
+		return
+	}
+
+	// Extrai o nome do objeto do campo url_pdf: "/certificados/uuid.pdf" → "uuid.pdf"
+	objectName := strings.TrimPrefix(cert.URLPDF, "/certificados/")
+	if objectName == "" || objectName == cert.URLPDF {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "url do PDF inválida"})
+		return
+	}
+
+	pdfBytes, err := h.storage.GetPDF(context.Background(), objectName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "falha ao baixar PDF"})
+		return
+	}
+
+	filename := fmt.Sprintf("certificado-%s.pdf", cert.QRCode[:8])
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Header("Content-Type", "application/pdf")
+	c.Data(http.StatusOK, "application/pdf", pdfBytes)
 }

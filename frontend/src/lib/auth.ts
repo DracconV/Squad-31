@@ -76,11 +76,12 @@ export function isTokenExpired(token: string | null): boolean {
  * Mapa de perfil → caminho do portal correspondente.
  * Usado para redirecionar o usuário após o login.
  */
+/** Todos os perfis vão para /dashboard — o MainLayout adapta o menu */
 export const ROTA_POR_PERFIL: Record<Perfil, string> = {
-  ALUNO_EM: '/aluno-em',
-  ALUNO_EJA: '/aluno-eja',
-  ALUNO_PROF: '/aluno-prof',
-  PROFESSOR: '/professor',
-  ADMIN_ESCOLA: '/admin-escola',
-  ADMIN_SEED: '/admin-seed',
+  ALUNO_EM:    '/dashboard',
+  ALUNO_EJA:   '/dashboard',
+  ALUNO_PROF:  '/dashboard',
+  PROFESSOR:   '/dashboard',
+  ADMIN_ESCOLA: '/dashboard',
+  ADMIN_SEED:  '/dashboard',
 }

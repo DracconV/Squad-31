@@ -24,6 +24,7 @@ export interface AuthUser {
   perfil: Perfil
   nome?: string
   matricula?: string
+  primeiroAcesso?: boolean
 }
 
 interface AuthContextValue {
@@ -71,8 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!u) {
       throw new Error('Token inválido recebido do servidor')
     }
-    setUser(u)
-    return u
+    const userWithFlags: AuthUser = { ...u, primeiroAcesso: resp.primeiroAcesso }
+    setUser(userWithFlags)
+    return userWithFlags
   }, [])
 
   const signOut = useCallback(() => {

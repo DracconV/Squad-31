@@ -19,6 +19,16 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const u = await signIn({ matricula: matricula.trim(), senha })
+
+      // Se for o primeiro acesso, redireciona para troca de senha
+      if (u.primeiroAcesso) {
+        navigate('/primeiro-acesso', {
+          replace: true,
+          state: { matricula: matricula.trim(), senhaTemporaria: senha, perfil: u.perfil },
+        })
+        return
+      }
+
       const destino = ROTA_POR_PERFIL[u.perfil] ?? '/'
       navigate(destino, { replace: true })
     } catch (err) {

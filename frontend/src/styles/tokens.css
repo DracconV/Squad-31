@@ -1,0 +1,60 @@
+/* ======================================================
+   Design Tokens — SEED Educa
+   Fonte: adaptado do repositório rafaelsants1/seed
+   ====================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono&display=swap');
+
+:root {
+  /* Cores */
+  --primary:      #1C3F6E;
+  --primary-dark: #15305A;
+  --accent:       #2C6DB5;
+  --accent-light: #EBF2FB;
+
+  --success: #2E7D32;
+  --error:   #B00020;
+  --warning: #E65100;
+  --info:    #0277BD;
+
+  --surface:    #FFFFFF;
+  --background: #F4F6F9;
+  --border:     #E0E0E0;
+
+  --text-primary: #1A1A2E;
+  --text-muted:   #666666;
+  --text-inverse: #FFFFFF;
+
+  /* Sidebar */
+  --sidebar-bg:          #1A2A44;
+  --sidebar-text:        #CBD5E1;
+  --sidebar-text-active: #FFFFFF;
+  --sidebar-item-active: #2C6DB5;
+  --sidebar-width:       260px;
+
+  /* Tipografia */
+  --font-heading: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body:    'Source Sans 3', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+
+  /* Bordas */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* Base */
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
