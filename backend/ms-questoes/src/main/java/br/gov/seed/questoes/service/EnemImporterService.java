@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -35,17 +36,19 @@ public class EnemImporterService {
     @Value("${enem.api.auto-import}")
     private boolean autoImport;
 
+    // Limite máximo aceito pela API pública
+    private static final int PAGE_LIMIT = 50;
+
+    // Delay entre páginas para respeitar rate limit (~1 req/s com margem)
+    private static final long DELAY_ENTRE_PAGINAS_MS = 1200;
+
+    // Delay entre anos
+    private static final long DELAY_ENTRE_ANOS_MS = 2000;
+
+    // Máximo de retentativas em caso de 429
+    private static final int MAX_RETRIES = 3;
+
     // ── DTOs internos para deserializar a API ──────────────────────────────
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ExamsResponse {
-        private List<ExamItem> exams;
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ExamItem {
-        private Integer year;
-    }
 
     @Data @JsonIgnoreProperties(ignoreUnknown = true)
     public static class QuestoesResponse {
@@ -92,6 +95,14 @@ public class EnemImporterService {
 
     private final Map<String, Disciplina> disciplinaCache = new HashMap<>();
 
+    // ── Anos conhecidos do ENEM ────────────────────────────────────────────
+
+    private static final int[] ANOS_ENEM = {
+            2009, 2010, 2011, 2012, 2013, 2014,
+            2015, 2016, 2017, 2018, 2019, 2020,
+            2021, 2022, 2023
+    };
+
     // ── Ponto de entrada no startup ───────────────────────────────────────
 
     @EventListener(ApplicationReadyEvent.class)
@@ -115,66 +126,89 @@ public class EnemImporterService {
         UUID adminId = buscarAdminId();
         RestTemplate rest = new RestTemplate();
 
-        // Busca lista de anos disponíveis
-        int[] anos = buscarAnos(rest);
-        log.info("Anos disponíveis na API: {}", Arrays.toString(anos));
+        log.info("Importando anos: {}", Arrays.toString(ANOS_ENEM));
 
         int totalImportadas = 0;
-        for (int ano : anos) {
+        for (int i = 0; i < ANOS_ENEM.length; i++) {
+            int ano = ANOS_ENEM[i];
             int importadas = importarAno(rest, ano, adminId);
             totalImportadas += importadas;
-            log.info("Ano {}: {} questões importadas", ano, importadas);
+            log.info("Ano {}: {} questões importadas. Total acumulado: {}", ano, importadas, totalImportadas);
+
+            // Delay entre anos (exceto após o último)
+            if (i < ANOS_ENEM.length - 1) {
+                sleep(DELAY_ENTRE_ANOS_MS);
+            }
         }
         log.info("Importação concluída. Total: {} questões.", totalImportadas);
     }
 
-    // ── Busca anos disponíveis ─────────────────────────────────────────────
-
-    private int[] buscarAnos(RestTemplate rest) {
-        try {
-            // A API retorna um array de inteiros diretamente
-            Integer[] anos = rest.getForObject(baseUrl + "/exams", Integer[].class);
-            if (anos == null) return new int[0];
-            return Arrays.stream(anos).mapToInt(Integer::intValue).toArray();
-        } catch (Exception e) {
-            log.warn("Falha ao buscar anos da API ENEM: {}. Usando lista padrão.", e.getMessage());
-            // Fallback: anos conhecidos do ENEM
-            return new int[]{2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023};
-        }
-    }
-
-    // ── Importa todas as questões de um ano ────────────────────────────────
+    // ── Importa todas as questões de um ano com paginação ─────────────────
 
     private int importarAno(RestTemplate rest, int ano, UUID adminId) {
         int offset = 0;
-        int limit  = 100;
         int importadas = 0;
 
         while (true) {
-            String url = String.format("%s/exams/%d/questions?limit=%d&offset=%d", baseUrl, ano, limit, offset);
-            QuestoesResponse resp;
-            try {
-                resp = rest.getForObject(url, QuestoesResponse.class);
-            } catch (Exception e) {
-                log.warn("Erro ao buscar questões do ano {} offset {}: {}", ano, offset, e.getMessage());
-                break;
-            }
+            String url = String.format("%s/exams/%d/questions?limit=%d&offset=%d",
+                    baseUrl, ano, PAGE_LIMIT, offset);
 
-            if (resp == null || resp.getQuestions() == null || resp.getQuestions().isEmpty()) break;
+            QuestoesResponse resp = buscarComRetry(rest, url, ano, offset);
+            if (resp == null) break;
 
-            for (EnemQuestion eq : resp.getQuestions()) {
+            List<EnemQuestion> questions = resp.getQuestions();
+            if (questions == null || questions.isEmpty()) break;
+
+            for (EnemQuestion eq : questions) {
                 try {
                     salvarQuestao(eq, adminId);
                     importadas++;
                 } catch (Exception e) {
-                    log.debug("Questão ignorada (possível duplicata): {} - {}", eq.getYear(), eq.getIndex());
+                    log.debug("Questão ignorada ({}/{}): {}", ano, eq.getIndex(), e.getMessage());
                 }
             }
 
             if (resp.getMetadata() == null || !resp.getMetadata().isHasMore()) break;
-            offset += limit;
+
+            offset += PAGE_LIMIT;
+            sleep(DELAY_ENTRE_PAGINAS_MS);
         }
         return importadas;
+    }
+
+    // ── Busca com retry em caso de 429 ────────────────────────────────────
+
+    private QuestoesResponse buscarComRetry(RestTemplate rest, String url, int ano, int offset) {
+        for (int tentativa = 1; tentativa <= MAX_RETRIES; tentativa++) {
+            try {
+                return rest.getForObject(url, QuestoesResponse.class);
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                // Extrai o tempo de espera sugerido da mensagem (ex: "Try again in 7224ms")
+                long waitMs = extrairWaitMs(e.getMessage());
+                log.warn("Rate limit atingido (ano={} offset={}). Aguardando {}ms antes de tentar novamente ({}/{}).",
+                        ano, offset, waitMs, tentativa, MAX_RETRIES);
+                sleep(waitMs + 500); // margem extra de 500ms
+            } catch (Exception e) {
+                log.warn("Erro ao buscar ano={} offset={}: {}", ano, offset, e.getMessage());
+                return null;
+            }
+        }
+        log.warn("Desistindo após {} tentativas para ano={} offset={}", MAX_RETRIES, ano, offset);
+        return null;
+    }
+
+    // ── Extrai ms do texto "Try again in 7224ms" ──────────────────────────
+
+    private long extrairWaitMs(String message) {
+        if (message == null) return 8000;
+        try {
+            int idx = message.indexOf("in ");
+            int end = message.indexOf("ms", idx);
+            if (idx >= 0 && end > idx) {
+                return Long.parseLong(message.substring(idx + 3, end).trim());
+            }
+        } catch (Exception ignored) {}
+        return 8000; // fallback seguro
     }
 
     // ── Persiste uma questão ───────────────────────────────────────────────
@@ -193,7 +227,7 @@ public class EnemImporterService {
                         .orElseGet(() -> disciplinaRepository.save(
                                 Disciplina.builder().nome(nome).build())));
 
-        // Enunciado: contexto + enunciado principal
+        // Monta enunciado: contexto + introdução + título
         StringBuilder enunciado = new StringBuilder();
         if (eq.getContext() != null && !eq.getContext().isBlank()) {
             enunciado.append(eq.getContext()).append("\n\n");
@@ -201,15 +235,18 @@ public class EnemImporterService {
         if (eq.getAlternativesIntroduction() != null && !eq.getAlternativesIntroduction().isBlank()) {
             enunciado.append(eq.getAlternativesIntroduction()).append("\n\n");
         }
-        if (eq.getTitle() != null) {
+        if (eq.getTitle() != null && !eq.getTitle().isBlank()) {
             enunciado.append(eq.getTitle());
         }
 
+        String textoFinal = enunciado.toString().trim();
+        if (textoFinal.isEmpty()) return;
+
         Questao questao = Questao.builder()
-                .enunciado(enunciado.toString().trim())
+                .enunciado(textoFinal)
                 .tipo("MULTIPLA_ESCOLHA")
-                .dificuldade("MEDIA")
-                .tipoUso("ENEM")
+                .dificuldade("MEDIO")
+                .tipoUso("AMBOS")
                 .disciplina(disciplina)
                 .criadoPor(adminId)
                 .ativa(true)
@@ -246,7 +283,16 @@ public class EnemImporterService {
         } catch (Exception e) {
             log.warn("Não encontrou admin no banco: {}. Usando UUID fixo.", e.getMessage());
         }
-        // UUID fixo de fallback (garante NOT NULL)
         return UUID.fromString("00000000-0000-0000-0000-000000000001");
+    }
+
+    // ── Utilitário de sleep ────────────────────────────────────────────────
+
+    private void sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

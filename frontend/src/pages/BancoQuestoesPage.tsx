@@ -173,7 +173,7 @@ export default function BancoQuestoesPage() {
           >
             <option value="">Todas</option>
             <option value="FACIL">Fácil</option>
-            <option value="MEDIA">Média</option>
+            <option value="MEDIO">Médio</option>
             <option value="DIFICIL">Difícil</option>
           </select>
         </div>
