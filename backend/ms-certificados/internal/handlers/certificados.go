@@ -12,15 +12,20 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/seed-educa/ms-certificados/internal/models"
-	"github.com/seed-educa/ms-certificados/internal/storage"
 )
+
+// PDFStore abstrai o acesso ao armazenamento de PDFs.
+// Implementado por *storage.MinioStorage em produção e por mocks nos testes.
+type PDFStore interface {
+	GetPDF(ctx context.Context, objectName string) ([]byte, error)
+}
 
 type CertificadoHandler struct {
 	db      *gorm.DB
-	storage *storage.MinioStorage
+	storage PDFStore
 }
 
-func NewCertificadoHandler(db *gorm.DB, s *storage.MinioStorage) *CertificadoHandler {
+func NewCertificadoHandler(db *gorm.DB, s PDFStore) *CertificadoHandler {
 	return &CertificadoHandler{db: db, storage: s}
 }
 
