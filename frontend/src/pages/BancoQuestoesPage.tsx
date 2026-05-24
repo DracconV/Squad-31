@@ -3,6 +3,60 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
+/* ── Renderizador de Markdown simples ───────────────────────── */
+
+function MarkdownText({ text }: { text: string }) {
+  if (!text) return null
+
+  // Divide o texto em segmentos: imagens, negrito, itálico e texto normal
+  const segments: React.ReactNode[] = []
+  let remaining = text
+  let key = 0
+
+  while (remaining.length > 0) {
+    // Imagem: ![alt](url)
+    const imgMatch = remaining.match(/^([\s\S]*?)!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/)
+    if (imgMatch) {
+      if (imgMatch[1]) segments.push(<span key={key++}>{renderInline(imgMatch[1])}</span>)
+      segments.push(
+        <img
+          key={key++}
+          src={imgMatch[3]}
+          alt={imgMatch[2] || 'imagem'}
+          className="max-w-full rounded my-2 mx-auto block"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      )
+      remaining = remaining.slice(imgMatch[0].length)
+      continue
+    }
+
+    // Sem mais imagens — renderiza o resto
+    segments.push(<span key={key++}>{renderInline(remaining)}</span>)
+    break
+  }
+
+  return <>{segments}</>
+}
+
+// Renderiza negrito e itálico dentro de um trecho de texto
+function renderInline(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  const regex = /(\*\*([^*]+)\*\*)|(_([^_]+)_)/g
+  let last = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index))
+    if (match[1]) parts.push(<strong key={match.index}>{match[2]}</strong>)
+    else if (match[3]) parts.push(<em key={match.index}>{match[4]}</em>)
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
+
 /* ── Tipos ──────────────────────────────────────────────────── */
 
 interface Disciplina {
@@ -288,7 +342,7 @@ function QuestaoCard({
           #{numero}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-800 line-clamp-2">{questao.enunciado}</p>
+          <p className="text-sm text-gray-800 line-clamp-2 overflow-hidden">{questao.enunciado.replace(/!\[[^\]]*\]\([^)]+\)/g, '[imagem]')}</p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             {questao.disciplina && (
               <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
@@ -309,7 +363,9 @@ function QuestaoCard({
       {/* Conteúdo expandido */}
       {expandida && (
         <div className="border-t border-gray-100 p-4 space-y-3">
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{questao.enunciado}</p>
+          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            <MarkdownText text={questao.enunciado} />
+          </div>
 
           {questao.alternativas && questao.alternativas.length > 0 && (
             <div className="space-y-2 mt-3">
