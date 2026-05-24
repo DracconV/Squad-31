@@ -24,6 +24,16 @@ func NewCertificadoHandler(db *gorm.DB, s *storage.MinioStorage) *CertificadoHan
 	return &CertificadoHandler{db: db, storage: s}
 }
 
+// VerificarPublico godoc
+// @Summary      Verifica autenticidade de um certificado pelo QR code
+// @Description  Endpoint público — não requer autenticação. Retorna valido=true se o certificado existe e é válido.
+// @Tags         Certificados
+// @Produce      json
+// @Param        qr   path      string  true  "Código QR do certificado"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Router       /verificar-certificado/{qr} [get]
 func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	qr := c.Param("qr")
 	if qr == "" {
@@ -62,6 +72,19 @@ func (h *CertificadoHandler) VerificarPublico(c *gin.Context) {
 	})
 }
 
+// BuscarPorAlunoCurso godoc
+// @Summary      Busca certificado de um aluno em um curso
+// @Description  Retorna os metadados do certificado. Aluno só pode ver o próprio; admin vê qualquer um.
+// @Tags         Certificados
+// @Produce      json
+// @Security     BearerAuth
+// @Param        aluno  path      string  true  "UUID do aluno"
+// @Param        curso  path      string  true  "UUID do curso"
+// @Success      200    {object}  models.Certificado
+// @Failure      400    {object}  map[string]string
+// @Failure      403    {object}  map[string]string
+// @Failure      404    {object}  map[string]string
+// @Router       /certificados/{aluno}/{curso} [get]
 func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.Param("aluno"))
 	if err != nil {
@@ -96,7 +119,19 @@ func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	c.JSON(http.StatusOK, cert)
 }
 
-// DownloadPDF serve o PDF do certificado diretamente do MinIO.
+// DownloadPDF godoc
+// @Summary      Faz download do PDF do certificado
+// @Description  Retorna o arquivo PDF diretamente do MinIO. Aluno só pode baixar o próprio; admin pode baixar qualquer um.
+// @Tags         Certificados
+// @Produce      application/pdf
+// @Security     BearerAuth
+// @Param        aluno  path      string  true  "UUID do aluno"
+// @Param        curso  path      string  true  "UUID do curso"
+// @Success      200    {file}    binary
+// @Failure      400    {object}  map[string]string
+// @Failure      403    {object}  map[string]string
+// @Failure      404    {object}  map[string]string
+// @Router       /certificados/{aluno}/{curso}/pdf [get]
 func (h *CertificadoHandler) DownloadPDF(c *gin.Context) {
 	alunoID, err := uuid.Parse(c.Param("aluno"))
 	if err != nil {

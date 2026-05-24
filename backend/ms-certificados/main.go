@@ -1,3 +1,12 @@
+// @title           SEED Educa — ms-certificados
+// @version         1.0
+// @description     API de emissão e verificação de certificados do SEED Educa. Autentique-se com o token JWT obtido em /auth/login.
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
+// @description     Formato: Bearer {token}
 package main
 
 import (
@@ -14,7 +23,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "github.com/seed-educa/ms-certificados/docs"
 	"github.com/seed-educa/ms-certificados/internal/db"
 	"github.com/seed-educa/ms-certificados/internal/handlers"
 	kafkapkg "github.com/seed-educa/ms-certificados/internal/kafka"
@@ -62,6 +74,9 @@ func main() {
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
+
+	// ── Swagger UI ──────────────────────────────────────────────
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "UP", "service": "ms-certificados"})
