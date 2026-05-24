@@ -1,23 +1,24 @@
 package br.gov.seed.questoes.controller;
 
+import br.gov.seed.questoes.config.JwtAuthFilter;
+import br.gov.seed.questoes.config.SecurityConfig;
 import br.gov.seed.questoes.dto.AlternativaDto;
 import br.gov.seed.questoes.dto.DisciplinaDto;
 import br.gov.seed.questoes.dto.QuestaoResponse;
 import br.gov.seed.questoes.service.EnemImporterService;
 import br.gov.seed.questoes.service.QuestaoService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.crypto.SecretKey;
@@ -31,10 +32,16 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DisplayName("QuestaoController — testes de API (integração)")
+@WebMvcTest(QuestaoController.class)
+@Import({SecurityConfig.class, JwtAuthFilter.class})
+@TestPropertySource(properties = {
+    "jwt.secret=test-secret-key-para-testes-unitarios-12345",
+    "enem.api.base-url=http://mock",
+    "enem.api.auto-import=false",
+    "springdoc.api-docs.enabled=false",
+    "springdoc.swagger-ui.enabled=false"
+})
+@DisplayName("QuestaoController — testes de API")
 class QuestaoControllerTest {
 
     private static final String JWT_SECRET =
@@ -42,9 +49,6 @@ class QuestaoControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private QuestaoService questaoService;
