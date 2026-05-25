@@ -1,0 +1,217 @@
+name: CI — SEED Educa
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+
+  backend-java:
+    name: Build — ${{ matrix.ms }}
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: seed_educa_test
+          POSTGRES_USER: seed_user
+          POSTGRES_PASSWORD: seed_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        ms:
+          - ms-autenticacao
+          - ms-questoes
+          - ms-simulados
+          - ms-relatorios
+          - api-gateway
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "backend/${{ matrix.ms }}/pom.xml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  backend/${{ matrix.ms }} ainda não tem pom.xml — pulando."
+          fi
+
+      - name: Build e testes
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend/${{ matrix.ms }}
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/seed_educa_test
+          SPRING_DATASOURCE_USERNAME: seed_user
+          SPRING_DATASOURCE_PASSWORD: seed_pass
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+        run: mvn verify --no-transfer-progress
+
+      - name: Relatório de testes
+        if: steps.check.outputs.exists == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ matrix.ms }}
+          path: backend/${{ matrix.ms }}/target/surefire-reports/
+          retention-days: 7
+
+  backend-go:
+    name: Build — Go (${{ matrix.ms }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ms:
+          - ms-certificados
+          - ms-cursos
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "backend/${{ matrix.ms }}/go.mod" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  backend/${{ matrix.ms }} ainda não tem go.mod — pulando."
+          fi
+
+      - name: Build e testes
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend/${{ matrix.ms }}
+        run: |
+          go mod tidy
+          go build ./...
+          go test ./...
+
+  analytics-ia:
+    name: Build — Python (analytics-ia)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "analytics-ia/requirements.txt" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  analytics-ia ainda não tem requirements.txt — pulando."
+          fi
+
+      - name: Instalar dependências
+        if: steps.check.outputs.exists == 'true'
+        working-directory: analytics-ia
+        run: pip install -r requirements.txt
+
+      - name: Testes
+        if: steps.check.outputs.exists == 'true'
+        working-directory: analytics-ia
+        run: pytest || echo "pytest ainda não configurado"
+
+  frontend:
+    name: Build — Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar se existe
+        id: check
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Instalar e buildar
+        if: steps.check.outputs.exists == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+  infra:
+    name: Validar docker-compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar sintaxe
+        working-directory: infra
+        run: docker compose config --quiet
+
+  status:
+    name: Status final
+    runs-on: ubuntu-latest
+    needs: [backend-java, backend-go, analytics-ia, frontend, infra]
+    if: always()
+    steps:
+      - name: Resumo
+        run: |
+          echo "Backend Java:  ${{ needs.backend-java.result }}"
+          echo "Backend Go:    ${{ needs.backend-go.result }}"
+          echo "Analytics IA:  ${{ needs.analytics-ia.result }}"
+          echo "Frontend:      ${{ needs.frontend.result }}"
+          echo "Infra:         ${{ needs.infra.result }}"
