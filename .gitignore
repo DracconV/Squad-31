@@ -1,68 +1,33 @@
-# Java
+HELP.md
 target/
-*.class
-*.jar
-*.war
-*.ear
 .mvn/wrapper/maven-wrapper.jar
-hs_err_pid*
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Go
-bin/
-*.exe
-*.test
-*.out
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-*.egg-info/
-dist/
-.pytest_cache/
-
-# Node / React
-node_modules/
-dist/
-build/
-.next/
-.cache/
-npm-debug.log*
-yarn-error.log*
-
-# Variáveis de ambiente — nunca commitar o .env real
-.env
-.env.local
-.env.*.local
-*.env
-
-# IDEs
-.idea/
+### IntelliJ IDEA ###
+.idea
+*.iws
 *.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
 .vscode/
-*.suo
-*.sw?
-
-# Sistema operacional
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Docker
-docker-compose.override.yml
-
-# Logs
-logs/
-*.log
-spring.log
-
-# Testes e cobertura
-coverage/
-.nyc_output/
-surefire-reports/
-
-# Arquivos gerados (certificados, uploads temporários)
-generated/
-uploads/tmp/
