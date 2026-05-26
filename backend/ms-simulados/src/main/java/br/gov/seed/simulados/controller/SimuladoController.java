@@ -44,12 +44,14 @@ public class SimuladoController {
 
     @Operation(
         summary = "Lista simulados disponíveis",
-        description = "Retorna todos os simulados sem dataFim ou com dataFim futura, ordenados por data de criação."
+        description = "Retorna todos os simulados sem dataFim ou com dataFim futura, ordenados por data de criação. " +
+                      "Se `turmaId` for informado, filtra pelos simulados da turma."
     )
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping
-    public ResponseEntity<List<SimuladoResponse>> listar() {
-        return ResponseEntity.ok(simuladoService.listar());
+    public ResponseEntity<List<SimuladoResponse>> listar(
+            @Parameter(description = "UUID da turma (opcional)") @RequestParam(required = false) UUID turmaId) {
+        return ResponseEntity.ok(simuladoService.listar(turmaId));
     }
 
     @Operation(
