@@ -25,7 +25,7 @@ public class TurmaService {
     private final AlunoTurmaRepository alunoTurmaRepository;
 
     @Transactional
-    public TurmaDTO.Response criar(TurmaDTO.CriarRequest request) {
+    public TurmaDTO.Response criar(TurmaDTO.CriarRequest request, UUID professorId) {
         Instituicao instituicao = instituicaoRepository.findById(request.instituicaoId())
                 .orElseThrow(() -> new IllegalArgumentException("Instituicao nao encontrada: " + request.instituicaoId()));
 
@@ -34,10 +34,17 @@ public class TurmaService {
                 .ano(request.ano())
                 .modalidade(request.modalidade())
                 .instituicao(instituicao)
+                .professorId(professorId)
                 .ativo(true)
                 .build();
 
         return TurmaDTO.Response.from(turmaRepository.save(turma));
+    }
+
+    public List<TurmaDTO.Response> listarMinhas(UUID professorId) {
+        return turmaRepository.findByProfessorIdAndAtivoTrueOrderByNomeAsc(professorId).stream()
+                .map(TurmaDTO.Response::from)
+                .toList();
     }
 
     public List<TurmaDTO.Response> listarTodas() {

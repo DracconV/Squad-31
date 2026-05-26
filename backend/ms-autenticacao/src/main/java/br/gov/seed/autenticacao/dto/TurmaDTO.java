@@ -33,6 +33,7 @@ public class TurmaDTO {
         String modalidade,
         UUID instituicaoId,
         String nomeInstituicao,
+        UUID professorId,
         Boolean ativo,
         LocalDateTime criadoEm
     ) {
@@ -44,6 +45,7 @@ public class TurmaDTO {
                 t.getModalidade(),
                 t.getInstituicao() != null ? t.getInstituicao().getId() : null,
                 t.getInstituicao() != null ? t.getInstituicao().getNome() : null,
+                t.getProfessorId(),
                 t.getAtivo(),
                 t.getCriadoEm()
             );

@@ -23,6 +23,9 @@ public class Turma {
     @Column(nullable = false)
     private String modalidade;
 
+    @Column(name = "professor_id")
+    private UUID professorId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicao;

@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface TurmaRepository extends JpaRepository<Turma, UUID> {
     List<Turma> findByInstituicaoIdAndAtivoTrueOrderByNomeAsc(UUID instituicaoId);
     List<Turma> findByAtivoTrueOrderByNomeAsc();
+    List<Turma> findByProfessorIdAndAtivoTrueOrderByNomeAsc(UUID professorId);
 }
