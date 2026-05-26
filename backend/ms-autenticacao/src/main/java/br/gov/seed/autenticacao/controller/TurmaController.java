@@ -42,6 +42,15 @@ public class TurmaController {
         return ResponseEntity.ok(turmaService.listarTodas());
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    @Operation(summary = "Atualizar turma", description = "Atualiza nome, ano ou modalidade de uma turma existente.")
+    public ResponseEntity<TurmaDTO.Response> atualizar(
+            @PathVariable UUID id,
+            @RequestBody TurmaDTO.AtualizarRequest request) {
+        return ResponseEntity.ok(turmaService.atualizar(id, request));
+    }
+
     @PostMapping("/{turmaId}/alunos")
     @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
     @Operation(summary = "Adicionar aluno a turma")

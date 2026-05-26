@@ -16,6 +16,12 @@ public class TurmaDTO {
         @NotNull UUID instituicaoId
     ) {}
 
+    public record AtualizarRequest(
+        String nome,
+        Integer ano,
+        String modalidade
+    ) {}
+
     public record AdicionarAlunoRequest(
         @NotNull UUID alunoId
     ) {}

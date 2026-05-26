@@ -53,6 +53,22 @@ public class TurmaService {
     }
 
     @Transactional
+    public TurmaDTO.Response atualizar(UUID id, TurmaDTO.AtualizarRequest request) {
+        Turma turma = turmaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Turma nao encontrada: " + id));
+        if (request.nome() != null && !request.nome().isBlank()) {
+            turma.setNome(request.nome());
+        }
+        if (request.ano() != null && request.ano() > 0) {
+            turma.setAno(request.ano());
+        }
+        if (request.modalidade() != null && !request.modalidade().isBlank()) {
+            turma.setModalidade(request.modalidade());
+        }
+        return TurmaDTO.Response.from(turmaRepository.save(turma));
+    }
+
+    @Transactional
     public void adicionarAluno(UUID turmaId, UUID alunoId) {
         if (!turmaRepository.existsById(turmaId)) {
             throw new IllegalArgumentException("Turma nao encontrada: " + turmaId);

@@ -18,6 +18,13 @@ public class UsuarioDTO {
         UUID instituicaoId
     ) {}
 
+    public record AtualizarRequest(
+        String nome,
+        String email,
+        String cpf,
+        UUID instituicaoId
+    ) {}
+
     public record Response(
         UUID id,
         String nome,

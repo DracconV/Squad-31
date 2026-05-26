@@ -42,6 +42,22 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.listarTodos());
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN_SEED', 'ADMIN_ESCOLA')")
+    @Operation(summary = "Buscar usuario por ID")
+    public ResponseEntity<UsuarioDTO.Response> buscar(@PathVariable UUID id) {
+        return ResponseEntity.ok(usuarioService.buscarPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN_SEED', 'ADMIN_ESCOLA')")
+    @Operation(summary = "Atualizar dados do usuario", description = "Atualiza nome, email, cpf e/ou instituicao do usuario.")
+    public ResponseEntity<UsuarioDTO.Response> atualizar(
+            @PathVariable UUID id,
+            @RequestBody UsuarioDTO.AtualizarRequest request) {
+        return ResponseEntity.ok(usuarioService.atualizar(id, request));
+    }
+
     @PutMapping("/{id}/desativar")
     @PreAuthorize("hasAnyRole('ADMIN_SEED', 'ADMIN_ESCOLA')")
     @Operation(summary = "Desativar usuario")

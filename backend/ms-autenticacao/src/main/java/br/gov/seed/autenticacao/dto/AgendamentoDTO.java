@@ -2,6 +2,7 @@ package br.gov.seed.autenticacao.dto;
 
 import br.gov.seed.autenticacao.entity.AgendamentoProva;
 import br.gov.seed.autenticacao.entity.SlotProvaPratica;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -10,6 +11,19 @@ public class AgendamentoDTO {
 
     public record CriarRequest(
         @NotNull UUID slotId
+    ) {}
+
+    public record CriarSlotRequest(
+        @NotNull UUID moduloId,
+        @NotNull LocalDateTime data,
+        @NotBlank String local,
+        @NotNull Integer vagasTotais
+    ) {}
+
+    public record AtualizarSlotRequest(
+        LocalDateTime data,
+        String local,
+        Integer vagasTotais
     ) {}
 
     public record SlotResponse(

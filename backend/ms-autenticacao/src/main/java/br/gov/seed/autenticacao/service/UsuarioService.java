@@ -64,6 +64,37 @@ public class UsuarioService {
                 .toList();
     }
 
+    public UsuarioDTO.Response buscarPorId(UUID id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado: " + id));
+        return UsuarioDTO.Response.from(usuario);
+    }
+
+    @Transactional
+    public UsuarioDTO.Response atualizar(UUID id, UsuarioDTO.AtualizarRequest request) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado: " + id));
+        if (request.nome() != null && !request.nome().isBlank()) {
+            usuario.setNome(request.nome());
+        }
+        if (request.email() != null) {
+            usuario.setEmail(request.email());
+        }
+        if (request.cpf() != null && !request.cpf().isBlank()) {
+            if (!request.cpf().equals(usuario.getCpf()) && usuarioRepository.existsByCpf(request.cpf())) {
+                throw new IllegalArgumentException("CPF ja cadastrado por outro usuario");
+            }
+            usuario.setCpf(request.cpf());
+        }
+        if (request.instituicaoId() != null) {
+            Instituicao inst = instituicaoRepository.findById(request.instituicaoId())
+                    .orElseThrow(() -> new IllegalArgumentException("Instituicao nao encontrada: " + request.instituicaoId()));
+            usuario.setInstituicao(inst);
+        }
+        usuario.setAtualizadoEm(java.time.LocalDateTime.now());
+        return UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+    }
+
     @Transactional
     public UsuarioDTO.Response desativar(UUID id) {
         Usuario usuario = usuarioRepository.findById(id)
