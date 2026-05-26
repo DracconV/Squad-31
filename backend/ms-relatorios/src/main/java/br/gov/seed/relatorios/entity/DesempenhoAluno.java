@@ -28,21 +28,27 @@ public class DesempenhoAluno {
     @Column(nullable = false)
     private String disciplina;
 
+    @Builder.Default
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal notaMedia = BigDecimal.ZERO;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer questoesAcertadas = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Integer questoesTotal = 0;
 
+    @Builder.Default
     @Column(nullable = false)
     private Float taxaAcerto = 0f;
 
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime atualizadoEm = LocalDateTime.now();
 
@@ -59,4 +65,3 @@ public class DesempenhoAluno {
         }
     }
 }
-
