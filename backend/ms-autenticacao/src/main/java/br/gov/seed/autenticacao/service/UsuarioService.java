@@ -20,6 +20,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoRepository instituicaoRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public UsuarioDTO.Response criar(UsuarioDTO.CriarRequest request) {
@@ -48,7 +49,10 @@ public class UsuarioService {
                 .ativo(true)
                 .build();
 
-        return UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        UsuarioDTO.Response resp = UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        auditLogService.registrar(null, "CRIAR_USUARIO", "usuario", resp.id(),
+                java.util.Map.of("matricula", request.matricula(), "perfil", request.perfil().name()));
+        return resp;
     }
 
     public List<UsuarioDTO.Response> listarTodos() {
@@ -100,7 +104,9 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado: " + id));
         usuario.setAtivo(false);
-        return UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        UsuarioDTO.Response resp = UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        auditLogService.registrar(id, "DESATIVAR_USUARIO", "usuario", id, null);
+        return resp;
     }
 
     @Transactional
@@ -108,6 +114,8 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado: " + id));
         usuario.setAtivo(true);
-        return UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        UsuarioDTO.Response resp = UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        auditLogService.registrar(id, "REATIVAR_USUARIO", "usuario", id, null);
+        return resp;
     }
 }

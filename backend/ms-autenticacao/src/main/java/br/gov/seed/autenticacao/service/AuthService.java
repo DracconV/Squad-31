@@ -18,6 +18,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     public LoginResponse login(LoginRequest request) {
         authenticationManager.authenticate(
@@ -28,6 +29,9 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
 
         String token = jwtService.gerarToken(usuario);
+
+        auditLogService.registrar(usuario.getId(), "LOGIN", "usuario", usuario.getId(),
+                java.util.Map.of("perfil", usuario.getPerfil().name()));
 
         return new LoginResponse(
                 token,
@@ -55,5 +59,7 @@ public class AuthService {
         usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
         usuario.setPrimeiroAcesso(false);
         usuarioRepository.save(usuario);
+
+        auditLogService.registrar(usuario.getId(), "PRIMEIRO_ACESSO", "usuario", usuario.getId(), null);
     }
 }
