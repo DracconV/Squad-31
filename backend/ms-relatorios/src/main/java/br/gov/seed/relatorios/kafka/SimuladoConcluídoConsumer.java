@@ -22,7 +22,7 @@ public class SimuladoConcluídoConsumer {
     private final ObjectMapper objectMapper;
 
     @KafkaListener(
-        topics = "inscricao-concluida",
+        topics = "simulado-eventos",
         groupId = "ms-relatorios",
         containerFactory = "kafkaListenerContainerFactory"
     )

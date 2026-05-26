@@ -31,7 +31,7 @@ spring:
       ack-mode: manual_immediate
 
 server:
-  port: 8088
+  port: 8089
 
 management:
   endpoints:
