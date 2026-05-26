@@ -124,6 +124,93 @@ func (h *CertificadoHandler) BuscarPorAlunoCurso(c *gin.Context) {
 	c.JSON(http.StatusOK, cert)
 }
 
+// ListarPorAluno godoc
+// @Summary      Lista todos os certificados de um aluno
+// @Description  Aluno só vê os próprios; PROFESSOR, ADMIN_ESCOLA e ADMIN_SEED veem qualquer aluno.
+// @Tags         Certificados
+// @Produce      json
+// @Security     BearerAuth
+// @Param        aluno  path      string  true  "UUID do aluno"
+// @Success      200    {array}   models.Certificado
+// @Failure      400    {object}  map[string]string
+// @Failure      403    {object}  map[string]string
+// @Router       /certificados/{aluno} [get]
+func (h *CertificadoHandler) ListarPorAluno(c *gin.Context) {
+	alunoID, err := uuid.Parse(c.Param("aluno"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": "aluno inválido"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	perfil := c.GetString("perfil")
+	isAdmin := perfil == "ADMIN_SEED" || perfil == "ADMIN_ESCOLA" || perfil == "PROFESSOR"
+
+	if !isAdmin && alunoID.String() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"erro": "acesso negado"})
+		return
+	}
+
+	var certs []models.Certificado
+	if err := h.db.Where("aluno_id = ?", alunoID).Order("emitido_em desc").Find(&certs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "falha ao listar certificados"})
+		return
+	}
+	if certs == nil {
+		certs = []models.Certificado{}
+	}
+	c.JSON(http.StatusOK, certs)
+}
+
+// Revogar godoc
+// @Summary      Revoga um certificado
+// @Description  Apenas ADMIN_SEED pode revogar. O campo valido é setado para false.
+// @Tags         Certificados
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path      string  true  "UUID do certificado"
+// @Success      200  {object}  models.Certificado
+// @Failure      400  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Router       /certificados/{id}/revogar [put]
+func (h *CertificadoHandler) Revogar(c *gin.Context) {
+	perfil := c.GetString("perfil")
+	if perfil != "ADMIN_SEED" {
+		c.JSON(http.StatusForbidden, gin.H{"erro": "apenas ADMIN_SEED pode revogar certificados"})
+		return
+	}
+
+	certID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"erro": "id inválido"})
+		return
+	}
+
+	var cert models.Certificado
+	if err := h.db.First(&cert, "id = ?", certID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"erro": "certificado não encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "falha ao buscar certificado"})
+		return
+	}
+
+	if !cert.Valido {
+		c.JSON(http.StatusConflict, gin.H{"erro": "certificado já está revogado"})
+		return
+	}
+
+	if err := h.db.Model(&cert).Update("valido", false).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": "falha ao revogar certificado"})
+		return
+	}
+	cert.Valido = false
+	c.JSON(http.StatusOK, cert)
+}
+
 // DownloadPDF godoc
 // @Summary      Faz download do PDF do certificado
 // @Description  Retorna o arquivo PDF diretamente do MinIO. Aluno só pode baixar o próprio; admin pode baixar qualquer um.
