@@ -2,12 +2,13 @@ package br.gov.seed.relatorios.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -19,48 +20,32 @@ public class JwtService {
 
     public boolean validarToken(String token) {
         try {
-            var secretKey = new SecretKeySpec(
-                jwtSecret.getBytes(),
-                0,
-                jwtSecret.getBytes().length,
-                "HmacSHA256"
-            );
-
-            Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token);
-
+            extrairClaims(token);
             return true;
         } catch (SignatureException e) {
-            log.error("Token JWT inválido ou expirado");
+            log.error("Assinatura JWT invalida");
+            return false;
+        } catch (Exception e) {
+            log.error("Token JWT invalido ou expirado: {}", e.getMessage());
             return false;
         }
     }
 
     public UUID extrairUsuarioId(String token) {
-        var claims = extrairClaims(token);
-        return UUID.fromString(claims.getSubject());
+        return UUID.fromString(extrairClaims(token).getSubject());
     }
 
     public String extrairPerfil(String token) {
-        var claims = extrairClaims(token);
-        return claims.get("perfil", String.class);
+        return extrairClaims(token).get("perfil", String.class);
     }
 
     private Claims extrairClaims(String token) {
-        var secretKey = new SecretKeySpec(
-            jwtSecret.getBytes(),
-            0,
-            jwtSecret.getBytes().length,
-            "HmacSHA256"
-        );
+        var secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
-        return Jwts.parserBuilder()
-            .setSigningKey(secretKey)
-            .build()
-            .parseClaimsJws(token)
-            .getBody();
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
-
