@@ -20,7 +20,7 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@remoteAddressKeyResolver}"
           routes:
-            - id: ms-autenticacao
+            - id: ms-autenticacao-auth
               uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
               predicates:
                 - Path=/auth/**
@@ -32,10 +32,25 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@remoteAddressKeyResolver}"
 
+            - id: ms-autenticacao-admin
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/admin/**
+
+            - id: ms-autenticacao-turmas
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/turmas/**
+
+            - id: ms-autenticacao-agendamentos
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/agendamentos/**
+
             - id: ms-cursos
               uri: ${MS_CURSOS_URL:http://localhost:8085}
               predicates:
-                - Path=/cursos/**,/inscricoes/**,/stats/**,/swagger/**
+                - Path=/cursos/**,/inscricoes/**,/stats/**,/modulos/**
 
             - id: ms-certificados
               uri: ${MS_CERTIFICADOS_URL:http://localhost:8086}
@@ -45,12 +60,17 @@ spring:
             - id: ms-questoes
               uri: ${MS_QUESTOES_URL:http://localhost:8087}
               predicates:
-                - Path=/questoes/**,/disciplinas/**
+                - Path=/questoes/**,/disciplinas/**,/assuntos/**
 
             - id: ms-simulados
               uri: ${MS_SIMULADOS_URL:http://localhost:8088}
               predicates:
                 - Path=/simulados/**
+
+            - id: ms-relatorios
+              uri: ${MS_RELATORIOS_URL:http://localhost:8089}
+              predicates:
+                - Path=/relatorios/**,/diagnostico/**
 
 server:
   port: 8080
