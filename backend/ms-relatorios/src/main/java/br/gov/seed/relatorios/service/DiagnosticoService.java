@@ -111,7 +111,7 @@ public class DiagnosticoService {
 
         List<Map<String, Object>> rows;
         try {
-            rows = jdbcTemplate.queryForList(sql, alunoId.toString());
+            rows = jdbcTemplate.queryForList(sql, alunoId);
         } catch (Exception e) {
             log.warn("Erro ao calcular diagnóstico para aluno {}: {}", alunoId, e.getMessage());
             return new ArrayList<>();
