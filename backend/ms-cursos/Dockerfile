@@ -1,22 +1,15 @@
 # ----- build stage -----
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-# Instala o CLI do swaggo para gerar a documentação Swagger
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+# Copia go.mod/go.sum e baixa dependências (camada cacheada)
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Copia os fontes (inclui go.mod/go.sum)
-COPY go.mod go.sum* ./
+# Copia fontes (inclui docs/ já gerado localmente)
 COPY . .
 
-# Adiciona dependências do swagger, testcontainers (testes) e gera os docs
-RUN go get github.com/swaggo/gin-swagger github.com/swaggo/files \
-           github.com/stretchr/testify \
-           github.com/testcontainers/testcontainers-go \
-           github.com/testcontainers/testcontainers-go/modules/postgres && \
-    go mod tidy && \
-    swag init -g main.go --output docs
-
+# Compila o binário
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/ms-cursos .
 
 # ----- runtime stage -----
