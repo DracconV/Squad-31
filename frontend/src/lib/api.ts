@@ -192,3 +192,222 @@ export async function buscarCertificado(
     throw err
   }
 }
+
+export async function listarCertificadosPorAluno(alunoId: string): Promise<Certificado[]> {
+  const { data } = await api.get<Certificado[]>(`/certificados/${alunoId}`)
+  return data
+}
+
+/* ── Simulados (ms-simulados) ────────────────────────────── */
+
+export interface Simulado {
+  id: string
+  titulo: string
+  turmaId?: string
+  tempoMinutos: number
+  pontuado: boolean
+  dataInicio?: string
+  dataFim?: string
+  criadoEm: string
+  questaoIds?: string[]
+}
+
+export interface TentativaSimulado {
+  id: string
+  simuladoId: string
+  alunoId: string
+  nota: number
+  iniciadoEm: string
+  finalizadoEm: string
+  tempoGastoSegundos: number
+}
+
+export interface ResultadoSimulado {
+  tentativaId: string
+  simuladoId: string
+  alunoId: string
+  nota: number
+  acertos: number
+  total: number
+  iniciadoEm: string
+  finalizadoEm: string
+  tempoGastoSegundos: number
+}
+
+export async function listarSimulados(turmaId?: string): Promise<Simulado[]> {
+  const params = turmaId ? { turmaId } : {}
+  const { data } = await api.get<Simulado[]>('/simulados', { params })
+  return data
+}
+
+export async function buscarSimulado(id: string): Promise<Simulado> {
+  const { data } = await api.get<Simulado>(`/simulados/${id}`)
+  return data
+}
+
+export async function listarMeusSimulados(): Promise<Simulado[]> {
+  const { data } = await api.get<Simulado[]>('/simulados/professor/meus')
+  return data
+}
+
+export async function criarSimulado(payload: {
+  titulo: string
+  turmaId?: string
+  tempoMinutos: number
+  pontuado: boolean
+  dataInicio?: string
+  dataFim?: string
+}): Promise<Simulado> {
+  const { data } = await api.post<Simulado>('/simulados', payload)
+  return data
+}
+
+export async function listarMinhasTentativas(): Promise<TentativaSimulado[]> {
+  const { data } = await api.get<TentativaSimulado[]>('/simulados/minhas-tentativas')
+  return data
+}
+
+export async function resultadoSimulado(simuladoId: string): Promise<ResultadoSimulado> {
+  const { data } = await api.get<ResultadoSimulado>(`/simulados/${simuladoId}/resultado`)
+  return data
+}
+
+/* ── Turmas (ms-autenticacao) ────────────────────────────── */
+
+export interface Turma {
+  id: string
+  nome: string
+  ano: number
+  modalidade: string
+  instituicaoId: string
+  nomeInstituicao: string
+  professorId?: string
+  ativo: boolean
+  criadoEm: string
+}
+
+export interface AlunoTurma {
+  alunoId: string
+  nome: string
+  matricula: string
+  perfil: string
+}
+
+export async function listarTurmas(instituicaoId?: string): Promise<Turma[]> {
+  const params = instituicaoId ? { instituicaoId } : {}
+  const { data } = await api.get<Turma[]>('/turmas', { params })
+  return data
+}
+
+export async function listarMinhasTurmas(): Promise<Turma[]> {
+  const { data } = await api.get<Turma[]>('/turmas/minhas')
+  return data
+}
+
+export async function listarAlunosDaTurma(turmaId: string): Promise<AlunoTurma[]> {
+  const { data } = await api.get<AlunoTurma[]>(`/turmas/${turmaId}/alunos`)
+  return data
+}
+
+export async function criarTurma(payload: {
+  nome: string
+  ano: number
+  modalidade: string
+  instituicaoId: string
+}): Promise<Turma> {
+  const { data } = await api.post<Turma>('/turmas', payload)
+  return data
+}
+
+export async function adicionarAlunoTurma(turmaId: string, alunoId: string): Promise<void> {
+  await api.post(`/turmas/${turmaId}/alunos`, { alunoId })
+}
+
+/* ── Usuários Admin (ms-autenticacao) ────────────────────── */
+
+export interface Usuario {
+  id: string
+  nome: string
+  matricula: string
+  cpf?: string
+  email?: string
+  perfil: string
+  ativo: boolean
+  primeiroAcesso: boolean
+  instituicaoId?: string
+  nomeInstituicao?: string
+  criadoEm: string
+}
+
+export async function listarUsuarios(instituicaoId?: string): Promise<Usuario[]> {
+  const params = instituicaoId ? { instituicaoId } : {}
+  const { data } = await api.get<Usuario[]>('/admin/usuarios', { params })
+  return data
+}
+
+export async function criarUsuario(payload: {
+  nome: string
+  matricula: string
+  cpf?: string
+  email?: string
+  senhaTemporaria: string
+  perfil: string
+  instituicaoId?: string
+}): Promise<Usuario> {
+  const { data } = await api.post<Usuario>('/admin/usuarios', payload)
+  return data
+}
+
+export async function desativarUsuario(id: string): Promise<Usuario> {
+  const { data } = await api.put<Usuario>(`/admin/usuarios/${id}/desativar`)
+  return data
+}
+
+export async function reativarUsuario(id: string): Promise<Usuario> {
+  const { data } = await api.put<Usuario>(`/admin/usuarios/${id}/reativar`)
+  return data
+}
+
+/* ── Relatórios (ms-relatorios) ──────────────────────────── */
+
+export interface ResumoRede {
+  total_instituicoes: number
+  total_turmas: number
+  total_alunos: number
+  total_professores: number
+  media_geral_nota: number
+  gerado_em: string
+}
+
+export interface TaxaConclusaoCurso {
+  curso_id: string
+  total_inscritos: number
+  total_concluidos: number
+  taxa_conclusao: number
+}
+
+export interface AlunosPrimeiroAcesso {
+  total: number
+  alunos: Array<{
+    id: string
+    nome: string
+    matricula: string
+    perfil: string
+    criado_em: string
+  }>
+}
+
+export async function getResumoRede(): Promise<ResumoRede> {
+  const { data } = await api.get<ResumoRede>('/relatorios/rede/resumo')
+  return data
+}
+
+export async function getTaxaConclusao(): Promise<TaxaConclusaoCurso[]> {
+  const { data } = await api.get<TaxaConclusaoCurso[]>('/relatorios/cursos/taxa-conclusao')
+  return data
+}
+
+export async function getAlunosPrimeiroAcesso(): Promise<AlunosPrimeiroAcesso> {
+  const { data } = await api.get<AlunosPrimeiroAcesso>('/relatorios/alunos/primeiro-acesso')
+  return data
+}
