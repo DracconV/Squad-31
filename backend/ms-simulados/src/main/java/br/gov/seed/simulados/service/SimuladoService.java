@@ -5,6 +5,7 @@ import br.gov.seed.simulados.dto.ResultadoResponse;
 import br.gov.seed.simulados.dto.SimuladoResponse;
 import br.gov.seed.simulados.dto.TentativaResponse;
 import br.gov.seed.simulados.model.*;
+import br.gov.seed.simulados.repository.HistoricoQuestaoAlunoRepository;
 import br.gov.seed.simulados.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +30,16 @@ public class SimuladoService {
     private final TentativaSimuladoRepository tentativaRepo;
     private final RespostaTentativaRepository respostaTentativaRepo;
     private final AlternativaRepository alternativaRepo;
+    private final HistoricoQuestaoAlunoRepository historicoRepo;
 
-    /** Lista simulados disponíveis (sem dataFim ou com dataFim futura). */
-    public List<SimuladoResponse> listar() {
+    /** Lista simulados disponíveis. Se turmaId informado, filtra pela turma. */
+    public List<SimuladoResponse> listar(UUID turmaId) {
+        if (turmaId != null) {
+            return simuladoRepo.findByTurmaIdOrderByCriadoEmDesc(turmaId)
+                    .stream()
+                    .map(SimuladoResponse::from)
+                    .toList();
+        }
         return simuladoRepo.findDisponiveis(LocalDateTime.now())
                 .stream()
                 .map(SimuladoResponse::from)
@@ -104,10 +112,26 @@ public class SimuladoService {
 
         TentativaSimulado salva = tentativaRepo.save(tentativa);
 
-        // Salva respostas com FK para a tentativa
-        for (RespostaTentativa r : respostas) {
+        // Salva respostas com FK para a tentativa + grava histórico por questão
+        for (int i = 0; i < respostas.size(); i++) {
+            RespostaTentativa r = respostas.get(i);
             r.setTentativaId(salva.getId());
             respostaTentativaRepo.save(r);
+
+            // Histórico individual de cada questão respondida
+            UUID questaoId = questoes.get(i).getId().getQuestaoId();
+            UUID alternativaId = r.getAlternativaId();
+            boolean acertou = false;
+            if (alternativaId != null) {
+                Alternativa alt = alternativaRepo.findById(alternativaId).orElse(null);
+                acertou = alt != null && alt.isCorreta();
+            }
+            HistoricoQuestaoAluno historico = new HistoricoQuestaoAluno();
+            historico.setAlunoId(alunoId);
+            historico.setQuestaoId(questaoId);
+            historico.setAcertou(acertou);
+            historico.setRespondidoEm(agora);
+            historicoRepo.save(historico);
         }
 
         log.info("Simulado {} finalizado por aluno {} — nota={} acertos={}/{}", simuladoId, alunoId, nota, acertos, total);
