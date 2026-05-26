@@ -18,7 +18,9 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -76,8 +78,10 @@ public class SimuladoService {
                 (int) Duration.between(sessao.getIniciadoEm(), agora).toSeconds()
         );
 
-        // Conta acertos antecipadamente para calcular nota
+        // Coleta todos os alternativaIds de uma vez para fazer batch load
         List<RespostaTentativa> respostas = new ArrayList<>();
+        List<UUID> alternativaIds = new ArrayList<>();
+
         for (int i = 0; i < questoes.size(); i++) {
             SimuladoQuestao sq = questoes.get(i);
             String alternativaIdStr = sessao.getRespostas().get(i);
@@ -90,19 +94,23 @@ public class SimuladoService {
                     log.warn("alternativaId inválido na sessão index={}: {}", i, alternativaIdStr);
                 }
             }
-
-            if (alternativaId != null) {
-                Alternativa alt = alternativaRepo.findById(alternativaId).orElse(null);
-                if (alt != null && alt.isCorreta()) {
-                    acertos++;
-                }
-            }
+            alternativaIds.add(alternativaId); // null = não respondida
 
             RespostaTentativa resposta = new RespostaTentativa();
             resposta.setQuestaoId(sq.getId().getQuestaoId());
             resposta.setAlternativaId(alternativaId);
             resposta.setRespondidoEm(agora);
             respostas.add(resposta);
+        }
+
+        // Batch load — 1 query para todas as alternativas marcadas
+        List<UUID> idsParaBuscar = alternativaIds.stream().filter(id -> id != null).toList();
+        Map<UUID, Alternativa> alternativaCache = alternativaRepo.findAllById(idsParaBuscar)
+                .stream().collect(java.util.stream.Collectors.toMap(Alternativa::getId, a -> a));
+
+        for (UUID altId : idsParaBuscar) {
+            Alternativa alt = alternativaCache.get(altId);
+            if (alt != null && alt.isCorreta()) acertos++;
         }
 
         BigDecimal nota = total > 0
@@ -112,18 +120,17 @@ public class SimuladoService {
 
         TentativaSimulado salva = tentativaRepo.save(tentativa);
 
-        // Salva respostas com FK para a tentativa + grava histórico por questão
+        // Salva respostas com FK para a tentativa + grava histórico — reutiliza o cache
         for (int i = 0; i < respostas.size(); i++) {
             RespostaTentativa r = respostas.get(i);
             r.setTentativaId(salva.getId());
             respostaTentativaRepo.save(r);
 
-            // Histórico individual de cada questão respondida
             UUID questaoId = questoes.get(i).getId().getQuestaoId();
             UUID alternativaId = r.getAlternativaId();
             boolean acertou = false;
             if (alternativaId != null) {
-                Alternativa alt = alternativaRepo.findById(alternativaId).orElse(null);
+                Alternativa alt = alternativaCache.get(alternativaId);
                 acertou = alt != null && alt.isCorreta();
             }
             HistoricoQuestaoAluno historico = new HistoricoQuestaoAluno();
@@ -147,11 +154,20 @@ public class SimuladoService {
         List<SimuladoQuestao> questoes = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(simuladoId);
         List<RespostaTentativa> respostas = respostaTentativaRepo.findByTentativaId(tentativa.getId());
 
+        // Batch load — 1 query para todas as alternativas marcadas (evita N queries)
+        List<UUID> idsRespondidos = respostas.stream()
+                .map(RespostaTentativa::getAlternativaId)
+                .filter(id -> id != null)
+                .toList();
+        Map<UUID, Alternativa> cache = alternativaRepo.findAllById(idsRespondidos)
+                .stream().collect(Collectors.toMap(Alternativa::getId, a -> a));
+
         int acertos = (int) respostas.stream()
                 .filter(r -> r.getAlternativaId() != null)
-                .filter(r -> alternativaRepo.findById(r.getAlternativaId())
-                        .map(Alternativa::isCorreta)
-                        .orElse(false))
+                .filter(r -> {
+                    Alternativa alt = cache.get(r.getAlternativaId());
+                    return alt != null && alt.isCorreta();
+                })
                 .count();
 
         return ResultadoResponse.from(tentativa, questoes.size(), acertos);
