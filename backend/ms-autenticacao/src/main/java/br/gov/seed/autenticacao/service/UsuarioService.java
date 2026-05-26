@@ -96,7 +96,10 @@ public class UsuarioService {
             usuario.setInstituicao(inst);
         }
         usuario.setAtualizadoEm(java.time.LocalDateTime.now());
-        return UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        UsuarioDTO.Response resp = UsuarioDTO.Response.from(usuarioRepository.save(usuario));
+        auditLogService.registrar(id, "ATUALIZAR_USUARIO", "usuario", id,
+                java.util.Map.of("nome", usuario.getNome()));
+        return resp;
     }
 
     @Transactional
