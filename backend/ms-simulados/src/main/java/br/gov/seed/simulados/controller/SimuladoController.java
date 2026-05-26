@@ -1,9 +1,11 @@
 package br.gov.seed.simulados.controller;
 
+import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
 import br.gov.seed.simulados.dto.SimuladoResponse;
 import br.gov.seed.simulados.dto.TentativaResponse;
 import br.gov.seed.simulados.model.SessaoSimulado;
+import br.gov.seed.simulados.model.SimuladoQuestao;
 import br.gov.seed.simulados.service.SimuladoService;
 import br.gov.seed.simulados.service.TempoSimuladoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,8 +18,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -259,6 +264,116 @@ public class SimuladoController {
     public ResponseEntity<List<TentativaResponse>> minhasTentativas(HttpServletRequest request) {
         UUID alunoId = extrairAlunoId(request);
         return ResponseEntity.ok(simuladoService.minhasTentativas(alunoId));
+    }
+
+    // ── CRUD professor ───────────────────────────────────────────────────────
+
+    @Operation(
+        summary = "Cria um simulado (professor)",
+        description = "Professor, ADMIN_ESCOLA ou ADMIN_SEED criam simulados. O professorId é extraído do token JWT."
+    )
+    @ApiResponse(responseCode = "201", description = "Simulado criado")
+    @PostMapping
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<SimuladoResponse> criar(
+            @Valid @RequestBody CriarSimuladoRequest request,
+            HttpServletRequest httpRequest) {
+        UUID professorId = extrairAlunoId(httpRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(simuladoService.criar(request, professorId));
+    }
+
+    @Operation(summary = "Atualiza um simulado")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<SimuladoResponse> atualizar(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            @RequestBody CriarSimuladoRequest request) {
+        try {
+            return ResponseEntity.ok(simuladoService.atualizar(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Desativa um simulado", description = "Define dataFim como passada, tornando o simulado indisponível.")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<Void> desativar(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id) {
+        try {
+            simuladoService.desativar(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Simulados do professor autenticado")
+    @GetMapping("/professor/meus")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<List<SimuladoResponse>> meusPorProfessor(HttpServletRequest request) {
+        UUID professorId = extrairAlunoId(request);
+        return ResponseEntity.ok(simuladoService.meusPorProfessor(professorId));
+    }
+
+    // ── Questões do simulado ─────────────────────────────────────────────────
+
+    @Operation(summary = "Lista questões de um simulado")
+    @GetMapping("/{id}/questoes")
+    public ResponseEntity<List<SimuladoQuestao>> listarQuestoes(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(simuladoService.listarQuestoes(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Adiciona questão ao simulado")
+    @PostMapping("/{id}/questoes")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<SimuladoQuestao> adicionarQuestao(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        UUID questaoId = UUID.fromString(body.get("questaoId"));
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(simuladoService.adicionarQuestao(id, questaoId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Remove questão do simulado")
+    @DeleteMapping("/{id}/questoes/{questaoId}")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<Void> removerQuestao(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            @Parameter(description = "UUID da questão") @PathVariable UUID questaoId) {
+        try {
+            simuladoService.removerQuestao(id, questaoId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ── Gabarito ─────────────────────────────────────────────────────────────
+
+    @Operation(
+        summary = "Gabarito do simulado",
+        description = "Retorna a alternativa correta de cada questão. Disponível após o período do simulado."
+    )
+    @GetMapping("/{id}/gabarito")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<List<Map<String, Object>>> gabarito(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id) {
+        try {
+            return ResponseEntity.ok(simuladoService.gabarito(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────

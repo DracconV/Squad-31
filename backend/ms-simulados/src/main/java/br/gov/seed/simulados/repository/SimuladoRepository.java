@@ -15,4 +15,6 @@ public interface SimuladoRepository extends JpaRepository<Simulado, UUID> {
     List<Simulado> findDisponiveis(LocalDateTime agora);
 
     List<Simulado> findByTurmaIdOrderByCriadoEmDesc(UUID turmaId);
+
+    List<Simulado> findByProfessorIdOrderByCriadoEmDesc(UUID professorId);
 }

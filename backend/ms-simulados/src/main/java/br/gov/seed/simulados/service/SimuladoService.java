@@ -1,5 +1,6 @@
 package br.gov.seed.simulados.service;
 
+import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
 import br.gov.seed.simulados.dto.SimuladoResponse;
 import br.gov.seed.simulados.dto.TentativaResponse;
@@ -138,5 +139,106 @@ public class SimuladoService {
                 .stream()
                 .map(TentativaResponse::from)
                 .toList();
+    }
+
+    // ── CRUD de Simulado (professor) ─────────────────────────────────────────
+
+    @Transactional
+    public SimuladoResponse criar(CriarSimuladoRequest request, UUID professorId) {
+        Simulado simulado = new Simulado();
+        simulado.setTitulo(request.titulo());
+        simulado.setProfessorId(professorId);
+        simulado.setTurmaId(request.turmaId());
+        simulado.setTempoMinutos(request.tempoMinutos() > 0 ? request.tempoMinutos() : 60);
+        simulado.setPontuado(request.pontuado());
+        simulado.setDataInicio(request.dataInicio());
+        simulado.setDataFim(request.dataFim());
+        return SimuladoResponse.from(simuladoRepo.save(simulado));
+    }
+
+    @Transactional
+    public SimuladoResponse atualizar(UUID id, CriarSimuladoRequest request) {
+        Simulado simulado = simuladoRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Simulado não encontrado: " + id));
+        if (request.titulo() != null && !request.titulo().isBlank()) {
+            simulado.setTitulo(request.titulo());
+        }
+        if (request.turmaId() != null) simulado.setTurmaId(request.turmaId());
+        if (request.tempoMinutos() > 0) simulado.setTempoMinutos(request.tempoMinutos());
+        simulado.setPontuado(request.pontuado());
+        if (request.dataInicio() != null) simulado.setDataInicio(request.dataInicio());
+        if (request.dataFim() != null) simulado.setDataFim(request.dataFim());
+        return SimuladoResponse.from(simuladoRepo.save(simulado));
+    }
+
+    @Transactional
+    public void desativar(UUID id) {
+        Simulado simulado = simuladoRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Simulado não encontrado: " + id));
+        // Marca dataFim como agora para desativar
+        simulado.setDataFim(java.time.LocalDateTime.now().minusSeconds(1));
+        simuladoRepo.save(simulado);
+    }
+
+    /** Simulados criados pelo professor. */
+    public List<SimuladoResponse> meusPorProfessor(UUID professorId) {
+        return simuladoRepo.findByProfessorIdOrderByCriadoEmDesc(professorId)
+                .stream()
+                .map(SimuladoResponse::from)
+                .toList();
+    }
+
+    // ── Gestão de questões do simulado ────────────────────────────────────────
+
+    public List<SimuladoQuestao> listarQuestoes(UUID simuladoId) {
+        if (!simuladoRepo.existsById(simuladoId)) {
+            throw new RuntimeException("Simulado não encontrado: " + simuladoId);
+        }
+        return simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(simuladoId);
+    }
+
+    @Transactional
+    public SimuladoQuestao adicionarQuestao(UUID simuladoId, UUID questaoId) {
+        if (!simuladoRepo.existsById(simuladoId)) {
+            throw new RuntimeException("Simulado não encontrado: " + simuladoId);
+        }
+        SimuladoQuestaoId sqId = new SimuladoQuestaoId(simuladoId, questaoId);
+        if (simuladoQuestaoRepo.existsById(sqId)) {
+            throw new IllegalStateException("Questão já está no simulado");
+        }
+        int proximaOrdem = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(simuladoId).size() + 1;
+        SimuladoQuestao sq = new SimuladoQuestao();
+        sq.setId(sqId);
+        sq.setOrdem(proximaOrdem);
+        return simuladoQuestaoRepo.save(sq);
+    }
+
+    @Transactional
+    public void removerQuestao(UUID simuladoId, UUID questaoId) {
+        SimuladoQuestaoId sqId = new SimuladoQuestaoId(simuladoId, questaoId);
+        if (!simuladoQuestaoRepo.existsById(sqId)) {
+            throw new RuntimeException("Questão não encontrada no simulado");
+        }
+        simuladoQuestaoRepo.deleteById(sqId);
+    }
+
+    // ── Gabarito ──────────────────────────────────────────────────────────────
+
+    public List<java.util.Map<String, Object>> gabarito(UUID simuladoId) {
+        List<SimuladoQuestao> questoes = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(simuladoId);
+        if (questoes.isEmpty() && !simuladoRepo.existsById(simuladoId)) {
+            throw new RuntimeException("Simulado não encontrado: " + simuladoId);
+        }
+        return questoes.stream().map(sq -> {
+            UUID questaoId = sq.getId().getQuestaoId();
+            UUID alternativaCorreta = alternativaRepo.findByQuestaoIdAndCorretaTrue(questaoId)
+                    .map(Alternativa::getId)
+                    .orElse(null);
+            return java.util.Map.<String, Object>of(
+                    "ordem", sq.getOrdem(),
+                    "questaoId", questaoId,
+                    "alternativaCorretaId", alternativaCorreta != null ? alternativaCorreta.toString() : "N/D"
+            );
+        }).toList();
     }
 }

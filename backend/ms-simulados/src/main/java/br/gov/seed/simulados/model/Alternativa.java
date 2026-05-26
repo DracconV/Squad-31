@@ -19,4 +19,7 @@ public class Alternativa {
     private UUID id;
 
     private boolean correta;
+
+    @Column(name = "questao_id")
+    private UUID questaoId;
 }
