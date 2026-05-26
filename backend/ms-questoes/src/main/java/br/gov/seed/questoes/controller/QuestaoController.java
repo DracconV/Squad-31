@@ -52,10 +52,12 @@ public class QuestaoController {
             @Parameter(description = "FUNDAMENTAL | MEDIO | PROFISSIONALIZANTE") @RequestParam(required = false) String nivelEnsino,
             @Parameter(description = "MEDIO | EJA | PROFISSIONALIZANTE — filtra automaticamente os níveis permitidos para a modalidade") @RequestParam(required = false) String modalidadeTurma,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest httpRequest) {
 
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("criadoEm").descending());
-        return ResponseEntity.ok(questaoService.listar(disciplinaId, dificuldade, tipo, nivelEnsino, modalidadeTurma, pageable));
+        boolean incluirGabarito = ehProfessorOuAdmin(httpRequest);
+        return ResponseEntity.ok(questaoService.listar(disciplinaId, dificuldade, tipo, nivelEnsino, modalidadeTurma, pageable, incluirGabarito));
     }
 
     @Operation(
@@ -63,8 +65,8 @@ public class QuestaoController {
         security = @SecurityRequirement(name = "BearerAuth")
     )
     @GetMapping("/questoes/{id}")
-    public ResponseEntity<QuestaoResponse> buscar(@PathVariable UUID id) {
-        return ResponseEntity.ok(questaoService.buscarPorId(id));
+    public ResponseEntity<QuestaoResponse> buscar(@PathVariable UUID id, HttpServletRequest request) {
+        return ResponseEntity.ok(questaoService.buscarPorId(id, ehProfessorOuAdmin(request)));
     }
 
     @Operation(
@@ -80,7 +82,8 @@ public class QuestaoController {
             @RequestParam(defaultValue = "20") int size) {
         UUID professorId = extrairUserId(request);
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("criadoEm").descending());
-        return ResponseEntity.ok(questaoService.minhas(professorId, pageable));
+        // Professor sempre vê o gabarito das próprias questões
+        return ResponseEntity.ok(questaoService.minhas(professorId, pageable, true));
     }
 
     // ── Escrita ───────────────────────────────────────────────────────────────
@@ -198,7 +201,7 @@ public class QuestaoController {
         );
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private UUID extrairUserId(HttpServletRequest request) {
         Object attr = request.getAttribute("userID");
@@ -206,5 +209,13 @@ public class QuestaoController {
             throw new IllegalStateException("Atributo userID ausente — JWT inválido ou filtro não executado");
         }
         return UUID.fromString(attr.toString());
+    }
+
+    /** Retorna true se o chamador tem perfil de PROFESSOR, ADMIN_ESCOLA ou ADMIN_SEED. */
+    private boolean ehProfessorOuAdmin(HttpServletRequest request) {
+        Object perfil = request.getAttribute("perfil");
+        if (perfil == null) return false;
+        String p = perfil.toString();
+        return p.equals("PROFESSOR") || p.equals("ADMIN_ESCOLA") || p.equals("ADMIN_SEED");
     }
 }

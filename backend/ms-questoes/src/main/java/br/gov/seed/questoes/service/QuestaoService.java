@@ -40,27 +40,27 @@ public class QuestaoService {
 
     public Page<QuestaoResponse> listar(UUID disciplinaId, String dificuldade,
                                          String tipo, String nivelEnsino,
-                                         String modalidadeTurma, Pageable pageable) {
-        // Se informou modalidade de turma, usa os níveis permitidos para ela
+                                         String modalidadeTurma, Pageable pageable,
+                                         boolean incluirGabarito) {
         if (modalidadeTurma != null && !modalidadeTurma.isBlank()) {
             List<String> niveisPermitidos = NIVEIS_POR_MODALIDADE.getOrDefault(
                 modalidadeTurma.toUpperCase(), List.of("MEDIO")
             );
             return questaoRepository
                 .filtrarPorNiveis(niveisPermitidos, disciplinaId, dificuldade, pageable)
-                .map(QuestaoResponse::from);
+                .map(q -> QuestaoResponse.from(q, incluirGabarito));
         }
 
         return questaoRepository
             .filtrar(disciplinaId, dificuldade, tipo, nivelEnsino, pageable)
-            .map(QuestaoResponse::from);
+            .map(q -> QuestaoResponse.from(q, incluirGabarito));
     }
 
-    public QuestaoResponse buscarPorId(UUID id) {
+    public QuestaoResponse buscarPorId(UUID id, boolean incluirGabarito) {
         Questao q = questaoRepository.findById(id)
                 .filter(Questao::isAtiva)
                 .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
-        return QuestaoResponse.from(q);
+        return QuestaoResponse.from(q, incluirGabarito);
     }
 
     @Transactional
@@ -97,7 +97,7 @@ public class QuestaoService {
             alternativas.add(alt);
         }
         salva.setAlternativas(alternativas);
-        return QuestaoResponse.from(questaoRepository.save(salva));
+        return QuestaoResponse.from(questaoRepository.save(salva), true);
     }
 
     @Transactional
@@ -127,7 +127,27 @@ public class QuestaoService {
             questao.setDisciplina(disciplina);
         }
 
-        return QuestaoResponse.from(questaoRepository.save(questao));
+        // Atualiza alternativas se fornecidas — orphanRemoval garante a remoção das antigas
+        if (request.alternativas() != null && !request.alternativas().isEmpty()) {
+            long corretas = request.alternativas().stream()
+                    .filter(CriarQuestaoRequest.AlternativaRequest::correta).count();
+            if (corretas != 1) {
+                throw new IllegalArgumentException(
+                        "A questão deve ter exatamente 1 alternativa correta (encontradas: " + corretas + ")");
+            }
+            questao.getAlternativas().clear();
+            for (CriarQuestaoRequest.AlternativaRequest altReq : request.alternativas()) {
+                Alternativa alt = Alternativa.builder()
+                        .texto(altReq.texto())
+                        .correta(altReq.correta())
+                        .ordem(altReq.ordem())
+                        .questao(questao)
+                        .build();
+                questao.getAlternativas().add(alt);
+            }
+        }
+
+        return QuestaoResponse.from(questaoRepository.save(questao), true);
     }
 
     @Transactional
@@ -138,9 +158,9 @@ public class QuestaoService {
         questaoRepository.save(questao);
     }
 
-    public Page<QuestaoResponse> minhas(UUID professorId, Pageable pageable) {
+    public Page<QuestaoResponse> minhas(UUID professorId, Pageable pageable, boolean incluirGabarito) {
         return questaoRepository.findByCriadoPorAndAtivaTrue(professorId, pageable)
-                .map(QuestaoResponse::from);
+                .map(q -> QuestaoResponse.from(q, incluirGabarito));
     }
 
     public List<AssuntoDto> listarAssuntos(UUID disciplinaId) {

@@ -43,7 +43,7 @@ public class Questao {
     @Column(nullable = false)
     private boolean ativa = true;
 
-    @OneToMany(mappedBy = "questao", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "questao", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @OrderBy("ordem ASC")
     private List<Alternativa> alternativas;
 
