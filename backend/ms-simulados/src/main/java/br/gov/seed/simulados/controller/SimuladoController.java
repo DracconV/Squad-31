@@ -119,11 +119,16 @@ public class SimuladoController {
     @GetMapping("/{id}/sessao")
     public ResponseEntity<SessaoSimulado> getSessao(
             @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            HttpServletRequest request,
             HttpSession session) {
 
         SessaoSimulado sessao = (SessaoSimulado) session.getAttribute("sessao_simulado_" + id);
         if (sessao == null) {
             return ResponseEntity.notFound().build();
+        }
+        UUID alunoId = UUID.fromString((String) request.getAttribute("userID"));
+        if (!alunoId.equals(sessao.getAlunoId())) {
+            return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(sessao);
     }
