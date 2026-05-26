@@ -29,6 +29,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -77,6 +79,7 @@ class QuestaoControllerTest {
                 "MULTIPLA_ESCOLHA",
                 "FACIL",
                 "AMBOS",
+                "MEDIO",
                 "Matemática",
                 List.of(new AlternativaDto(UUID.randomUUID(), "4", true, 1))
         );
@@ -88,7 +91,7 @@ class QuestaoControllerTest {
     @DisplayName("GET /questoes retorna 200 com página de questões")
     void listar_retorna200() throws Exception {
         var page = new PageImpl<>(List.of(questaoFake()), PageRequest.of(0, 20), 1);
-        when(questaoService.listar(any(), any(), any(), any())).thenReturn(page);
+        when(questaoService.listar(any(), any(), any(), any(), any(), any(), anyBoolean())).thenReturn(page);
 
         mockMvc.perform(get("/questoes")
                         .header("Authorization", bearer("ALUNO_EM")))
@@ -109,7 +112,7 @@ class QuestaoControllerTest {
     @DisplayName("GET /questoes com filtros retorna 200")
     void listar_comFiltros_retorna200() throws Exception {
         var page = new PageImpl<QuestaoResponse>(List.of(), PageRequest.of(0, 10), 0);
-        when(questaoService.listar(any(), eq("FACIL"), any(), any())).thenReturn(page);
+        when(questaoService.listar(any(), eq("FACIL"), any(), any(), any(), any(), anyBoolean())).thenReturn(page);
 
         mockMvc.perform(get("/questoes?dificuldade=FACIL&size=10")
                         .header("Authorization", bearer("ALUNO_EM")))
@@ -123,7 +126,7 @@ class QuestaoControllerTest {
     @DisplayName("GET /questoes/{id} retorna 200 quando questão existe")
     void buscar_retorna200() throws Exception {
         QuestaoResponse q = questaoFake();
-        when(questaoService.buscarPorId(q.id())).thenReturn(q);
+        when(questaoService.buscarPorId(eq(q.id()), anyBoolean())).thenReturn(q);
 
         mockMvc.perform(get("/questoes/" + q.id())
                         .header("Authorization", bearer("ALUNO_EM")))
