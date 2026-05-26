@@ -1,15 +1,23 @@
 package br.gov.seed.questoes.service;
 
+import br.gov.seed.questoes.dto.AssuntoDto;
+import br.gov.seed.questoes.dto.CriarQuestaoRequest;
 import br.gov.seed.questoes.dto.DisciplinaDto;
 import br.gov.seed.questoes.dto.QuestaoResponse;
+import br.gov.seed.questoes.entity.Alternativa;
+import br.gov.seed.questoes.entity.Assunto;
+import br.gov.seed.questoes.entity.Disciplina;
 import br.gov.seed.questoes.entity.Questao;
+import br.gov.seed.questoes.repository.AssuntoRepository;
 import br.gov.seed.questoes.repository.DisciplinaRepository;
 import br.gov.seed.questoes.repository.QuestaoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,6 +29,7 @@ public class QuestaoService {
 
     private final QuestaoRepository questaoRepository;
     private final DisciplinaRepository disciplinaRepository;
+    private final AssuntoRepository assuntoRepository;
 
     // Quais níveis cada modalidade de turma pode acessar
     private static final Map<String, List<String>> NIVEIS_POR_MODALIDADE = Map.of(
@@ -52,6 +61,111 @@ public class QuestaoService {
                 .filter(Questao::isAtiva)
                 .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
         return QuestaoResponse.from(q);
+    }
+
+    @Transactional
+    public QuestaoResponse criar(CriarQuestaoRequest request, UUID professorId) {
+        Disciplina disciplina = disciplinaRepository.findById(request.disciplinaId())
+                .orElseThrow(() -> new IllegalArgumentException("Disciplina não encontrada: " + request.disciplinaId()));
+
+        long corretas = request.alternativas().stream().filter(CriarQuestaoRequest.AlternativaRequest::correta).count();
+        if (corretas != 1) {
+            throw new IllegalArgumentException("A questão deve ter exatamente 1 alternativa correta (encontradas: " + corretas + ")");
+        }
+
+        Questao questao = Questao.builder()
+                .enunciado(request.enunciado())
+                .tipo(request.tipo())
+                .dificuldade(request.dificuldade())
+                .tipoUso(request.tipoUso())
+                .nivelEnsino(request.nivelEnsino())
+                .disciplina(disciplina)
+                .criadoPor(professorId)
+                .ativa(true)
+                .build();
+
+        Questao salva = questaoRepository.save(questao);
+
+        List<Alternativa> alternativas = new ArrayList<>();
+        for (CriarQuestaoRequest.AlternativaRequest altReq : request.alternativas()) {
+            Alternativa alt = Alternativa.builder()
+                    .texto(altReq.texto())
+                    .correta(altReq.correta())
+                    .ordem(altReq.ordem())
+                    .questao(salva)
+                    .build();
+            alternativas.add(alt);
+        }
+        salva.setAlternativas(alternativas);
+        return QuestaoResponse.from(questaoRepository.save(salva));
+    }
+
+    @Transactional
+    public QuestaoResponse atualizar(UUID id, CriarQuestaoRequest request, UUID professorId) {
+        Questao questao = questaoRepository.findById(id)
+                .filter(Questao::isAtiva)
+                .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
+
+        if (request.enunciado() != null && !request.enunciado().isBlank()) {
+            questao.setEnunciado(request.enunciado());
+        }
+        if (request.tipo() != null && !request.tipo().isBlank()) {
+            questao.setTipo(request.tipo());
+        }
+        if (request.dificuldade() != null && !request.dificuldade().isBlank()) {
+            questao.setDificuldade(request.dificuldade());
+        }
+        if (request.tipoUso() != null && !request.tipoUso().isBlank()) {
+            questao.setTipoUso(request.tipoUso());
+        }
+        if (request.nivelEnsino() != null && !request.nivelEnsino().isBlank()) {
+            questao.setNivelEnsino(request.nivelEnsino());
+        }
+        if (request.disciplinaId() != null) {
+            Disciplina disciplina = disciplinaRepository.findById(request.disciplinaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Disciplina não encontrada: " + request.disciplinaId()));
+            questao.setDisciplina(disciplina);
+        }
+
+        return QuestaoResponse.from(questaoRepository.save(questao));
+    }
+
+    @Transactional
+    public void inativar(UUID id, UUID professorId) {
+        Questao questao = questaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
+        questao.setAtiva(false);
+        questaoRepository.save(questao);
+    }
+
+    public Page<QuestaoResponse> minhas(UUID professorId, Pageable pageable) {
+        return questaoRepository.findByCriadoPorAndAtivaTrue(professorId, pageable)
+                .map(QuestaoResponse::from);
+    }
+
+    public List<AssuntoDto> listarAssuntos(UUID disciplinaId) {
+        if (disciplinaId != null) {
+            return assuntoRepository.findByDisciplinaIdOrderByNomeAsc(disciplinaId).stream()
+                    .map(AssuntoDto::from)
+                    .collect(Collectors.toList());
+        }
+        return assuntoRepository.findAllByOrderByNomeAsc().stream()
+                .map(AssuntoDto::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public AssuntoDto criarAssunto(String nome, UUID disciplinaId) {
+        Disciplina disciplina = disciplinaRepository.findById(disciplinaId)
+                .orElseThrow(() -> new IllegalArgumentException("Disciplina não encontrada: " + disciplinaId));
+        if (assuntoRepository.existsByNomeAndDisciplinaId(nome, disciplinaId)) {
+            throw new IllegalArgumentException("Assunto já existe nesta disciplina: " + nome);
+        }
+        Assunto assunto = Assunto.builder()
+                .nome(nome)
+                .disciplina(disciplina)
+                .build();
+        return AssuntoDto.from(assuntoRepository.save(assunto));
     }
 
     public List<DisciplinaDto> listarDisciplinas() {

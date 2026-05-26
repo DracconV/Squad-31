@@ -43,4 +43,6 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
                                    Pageable pageable);
 
     long countByAtivaTrue();
+
+    Page<Questao> findByCriadoPorAndAtivaTrue(UUID criadoPor, Pageable pageable);
 }
