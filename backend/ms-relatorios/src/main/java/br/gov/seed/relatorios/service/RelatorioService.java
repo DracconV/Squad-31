@@ -143,9 +143,9 @@ public class RelatorioService {
     public RelatorioDTO.RelatorioAuditoria auditoria(int limite) {
         int lim = Math.min(Math.max(limite, 1), 500);
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, usuario_id, acao, entidade, entidade_id, ocorrido_em " +
+                "SELECT id, usuario_id, acao, entidade, entidade_id, \"timestamp\" " +
                 "FROM audit_log " +
-                "ORDER BY ocorrido_em DESC LIMIT " + lim);
+                "ORDER BY \"timestamp\" DESC LIMIT " + lim);
 
         return new RelatorioDTO.RelatorioAuditoria(
                 count("SELECT COUNT(*) FROM audit_log"), rows
