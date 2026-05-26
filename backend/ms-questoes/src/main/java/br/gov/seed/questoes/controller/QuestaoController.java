@@ -42,11 +42,13 @@ public class QuestaoController {
             @Parameter(description = "UUID da disciplina") @RequestParam(required = false) UUID disciplinaId,
             @Parameter(description = "FACIL | MEDIO | DIFICIL") @RequestParam(required = false) String dificuldade,
             @Parameter(description = "MULTIPLA_ESCOLHA | VERDADEIRO_FALSO") @RequestParam(required = false) String tipo,
+            @Parameter(description = "FUNDAMENTAL | MEDIO | PROFISSIONALIZANTE") @RequestParam(required = false) String nivelEnsino,
+            @Parameter(description = "MEDIO | EJA | PROFISSIONALIZANTE — filtra automaticamente os níveis permitidos para a modalidade") @RequestParam(required = false) String modalidadeTurma,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("criadoEm").descending());
-        return ResponseEntity.ok(questaoService.listar(disciplinaId, dificuldade, tipo, pageable));
+        return ResponseEntity.ok(questaoService.listar(disciplinaId, dificuldade, tipo, nivelEnsino, modalidadeTurma, pageable));
     }
 
     @Operation(

@@ -30,6 +30,9 @@ public class Questao {
     @Column(name = "tipo_uso", nullable = false, length = 10)
     private String tipoUso;
 
+    @Column(name = "nivel_ensino", nullable = false, length = 20)
+    private String nivelEnsino = "MEDIO";
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina;

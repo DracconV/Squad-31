@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
@@ -15,11 +16,31 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
 
     Page<Questao> findByDisciplina_IdAndAtivaTrue(UUID disciplinaId, Pageable pageable);
 
-    @Query("SELECT q FROM Questao q WHERE q.ativa = true AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId) AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade) AND (:tipo IS NULL OR q.tipo = :tipo)")
+    @Query("""
+        SELECT q FROM Questao q
+        WHERE q.ativa = true
+          AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
+          AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade)
+          AND (:tipo IS NULL OR q.tipo = :tipo)
+          AND (:nivelEnsino IS NULL OR q.nivelEnsino = :nivelEnsino)
+        """)
     Page<Questao> filtrar(@Param("disciplinaId") UUID disciplinaId,
                           @Param("dificuldade") String dificuldade,
                           @Param("tipo") String tipo,
+                          @Param("nivelEnsino") String nivelEnsino,
                           Pageable pageable);
+
+    @Query("""
+        SELECT q FROM Questao q
+        WHERE q.ativa = true
+          AND q.nivelEnsino IN :niveisPermitidos
+          AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
+          AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade)
+        """)
+    Page<Questao> filtrarPorNiveis(@Param("niveisPermitidos") List<String> niveisPermitidos,
+                                   @Param("disciplinaId") UUID disciplinaId,
+                                   @Param("dificuldade") String dificuldade,
+                                   Pageable pageable);
 
     long countByAtivaTrue();
 }

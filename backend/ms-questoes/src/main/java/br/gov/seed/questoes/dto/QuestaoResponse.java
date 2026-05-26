@@ -12,6 +12,7 @@ public record QuestaoResponse(
         String tipo,
         String dificuldade,
         String tipoUso,
+        String nivelEnsino,
         String disciplina,
         List<AlternativaDto> alternativas
 ) {
@@ -26,6 +27,7 @@ public record QuestaoResponse(
                 q.getTipo(),
                 q.getDificuldade(),
                 q.getTipoUso(),
+                q.getNivelEnsino(),
                 q.getDisciplina() != null ? q.getDisciplina().getNome() : null,
                 alts
         );
