@@ -107,6 +107,41 @@ public class AgendamentoService {
     }
 
     @Transactional
+    public AgendamentoDTO.Response reagendar(UUID agendamentoId, UUID alunoId, UUID novoSlotId) {
+        AgendamentoProva agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento nao encontrado: " + agendamentoId));
+
+        if (!agendamento.getAlunoId().equals(alunoId)) {
+            throw new IllegalArgumentException("Agendamento nao pertence ao aluno informado");
+        }
+
+        if (agendamento.getSlotId().equals(novoSlotId)) {
+            throw new IllegalArgumentException("O novo slot deve ser diferente do atual");
+        }
+
+        // Libera vaga no slot antigo
+        SlotProvaPratica slotAntigo = slotRepository.findById(agendamento.getSlotId())
+                .orElseThrow(() -> new IllegalStateException("Slot antigo nao encontrado"));
+        slotAntigo.setVagasOcupadas(Math.max(0, slotAntigo.getVagasOcupadas() - 1));
+        slotRepository.save(slotAntigo);
+
+        // Ocupa vaga no novo slot
+        SlotProvaPratica novoSlot = slotRepository.findById(novoSlotId)
+                .orElseThrow(() -> new IllegalArgumentException("Novo slot nao encontrado: " + novoSlotId));
+        if (novoSlot.getVagasOcupadas() >= novoSlot.getVagasTotais()) {
+            throw new IllegalStateException("Novo slot sem vagas disponiveis");
+        }
+        novoSlot.setVagasOcupadas(novoSlot.getVagasOcupadas() + 1);
+        slotRepository.save(novoSlot);
+
+        // Atualiza agendamento
+        agendamento.setSlotId(novoSlotId);
+        AgendamentoProva salvo = agendamentoRepository.save(agendamento);
+        salvo.setSlot(novoSlot);
+        return AgendamentoDTO.Response.from(salvo);
+    }
+
+    @Transactional
     public void cancelar(UUID agendamentoId, UUID alunoId) {
         AgendamentoProva agendamento = agendamentoRepository.findById(agendamentoId)
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento nao encontrado: " + agendamentoId));

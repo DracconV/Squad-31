@@ -26,6 +26,10 @@ public class AgendamentoDTO {
         Integer vagasTotais
     ) {}
 
+    public record ReagendarRequest(
+        @NotNull UUID novoSlotId
+    ) {}
+
     public record SlotResponse(
         UUID id,
         UUID moduloId,

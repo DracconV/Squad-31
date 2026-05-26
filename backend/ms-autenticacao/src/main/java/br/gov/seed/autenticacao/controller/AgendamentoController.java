@@ -52,6 +52,17 @@ public class AgendamentoController {
         return ResponseEntity.ok(agendamentoService.meusAgendamentos(alunoId));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ALUNO_EM', 'ALUNO_EJA', 'ALUNO_PROF')")
+    @Operation(summary = "Reagendar prova", description = "Troca o slot do agendamento sem cancelar e recriar.")
+    public ResponseEntity<AgendamentoDTO.Response> reagendar(
+            @PathVariable UUID id,
+            @Valid @RequestBody AgendamentoDTO.ReagendarRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID alunoId = extrairId(userDetails);
+        return ResponseEntity.ok(agendamentoService.reagendar(id, alunoId, request.novoSlotId()));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ALUNO_EM', 'ALUNO_EJA', 'ALUNO_PROF')")
     @Operation(summary = "Cancelar agendamento")
