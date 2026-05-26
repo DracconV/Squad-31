@@ -69,7 +69,7 @@ class SimuladoControllerTest {
 
     @Test
     void listar_retornaListaVazia() throws Exception {
-        when(simuladoService.listar()).thenReturn(List.of());
+        when(simuladoService.listar(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/simulados"))
                 .andExpect(status().isOk())
@@ -82,7 +82,7 @@ class SimuladoControllerTest {
         dto.setId(simuladoId);
         dto.setTitulo("Simulado ENEM 2024");
         dto.setTempoMinutos(180);
-        when(simuladoService.listar()).thenReturn(List.of(dto));
+        when(simuladoService.listar(any())).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/simulados"))
                 .andExpect(status().isOk())
