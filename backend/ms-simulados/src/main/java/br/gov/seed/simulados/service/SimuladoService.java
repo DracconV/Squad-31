@@ -7,6 +7,7 @@ import br.gov.seed.simulados.dto.TentativaResponse;
 import br.gov.seed.simulados.model.*;
 import br.gov.seed.simulados.repository.HistoricoQuestaoAlunoRepository;
 import br.gov.seed.simulados.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,8 @@ public class SimuladoService {
     private final RespostaTentativaRepository respostaTentativaRepo;
     private final AlternativaRepository alternativaRepo;
     private final HistoricoQuestaoAlunoRepository historicoRepo;
+    private final OutboxEventRepository outboxRepo;
+    private final ObjectMapper objectMapper;
 
     /** Lista simulados disponíveis. Se turmaId informado, filtra pela turma. */
     public List<SimuladoResponse> listar(UUID turmaId) {
@@ -120,25 +123,45 @@ public class SimuladoService {
 
         TentativaSimulado salva = tentativaRepo.save(tentativa);
 
-        // Salva respostas com FK para a tentativa + grava histórico — reutiliza o cache
+        // Prepara respostas e histórico em listas — salva em batch (2 queries em vez de 2N)
+        List<HistoricoQuestaoAluno> historicos = new ArrayList<>();
         for (int i = 0; i < respostas.size(); i++) {
             RespostaTentativa r = respostas.get(i);
             r.setTentativaId(salva.getId());
-            respostaTentativaRepo.save(r);
 
             UUID questaoId = questoes.get(i).getId().getQuestaoId();
             UUID alternativaId = r.getAlternativaId();
-            boolean acertou = false;
-            if (alternativaId != null) {
-                Alternativa alt = alternativaCache.get(alternativaId);
-                acertou = alt != null && alt.isCorreta();
-            }
+            boolean acertou = alternativaId != null &&
+                    alternativaCache.getOrDefault(alternativaId, null) != null &&
+                    alternativaCache.get(alternativaId).isCorreta();
+
             HistoricoQuestaoAluno historico = new HistoricoQuestaoAluno();
             historico.setAlunoId(alunoId);
             historico.setQuestaoId(questaoId);
             historico.setAcertou(acertou);
             historico.setRespondidoEm(agora);
-            historicoRepo.save(historico);
+            historicos.add(historico);
+        }
+        respostaTentativaRepo.saveAll(respostas);
+        historicoRepo.saveAll(historicos);
+
+        // Publica evento no outbox → OutboxPublisher envia para Kafka → ms-relatorios atualiza desempenho
+        try {
+            Simulado simulado = simuladoRepo.findById(simuladoId).orElse(null);
+            UUID turmaId = simulado != null ? simulado.getTurmaId() : null;
+            OutboxEvent evento = new OutboxEvent();
+            evento.setTipo("SIMULADO_FINALIZADO");
+            evento.setPayload(objectMapper.writeValueAsString(java.util.Map.of(
+                    "alunoId", alunoId.toString(),
+                    "turmaId", turmaId != null ? turmaId.toString() : "",
+                    "simuladoId", simuladoId.toString(),
+                    "disciplina", "GERAL",
+                    "acertos", acertos,
+                    "total", total
+            )));
+            outboxRepo.save(evento);
+        } catch (Exception e) {
+            log.warn("Falha ao registrar evento outbox para simulado {}: {}", simuladoId, e.getMessage());
         }
 
         log.info("Simulado {} finalizado por aluno {} — nota={} acertos={}/{}", simuladoId, alunoId, nota, acertos, total);
