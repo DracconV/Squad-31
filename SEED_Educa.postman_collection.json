@@ -1,0 +1,385 @@
+{
+	"info": {
+		"_postman_id": "seed-educa-2024",
+		"name": "SEED Educa — Backend",
+		"description": "# SEED Educa — Testes de API\n\n## Como usar\n1. Importe este arquivo e o `SEED_Educa.postman_environment.json`\n2. Selecione o environment **SEED Educa Local** (canto superior direito)\n3. Execute **Auth — Login** primeiro\n4. Todos os outros requests já funcionam automaticamente\n\n## Serviços\n| Serviço | Porta | Tecnologia |\n|---|---|---|\n| ms-autenticacao | 8081 | Java/Spring Boot |\n| ms-cursos | 8085 | Go/Gin |\n| ms-certificados | 8086 | Go/Gin |\n| ms-questoes | 8087 | Java/Spring Boot |\n| ms-simulados | 8088 | Java/Spring Boot |",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Auth — Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var res = pm.response.json();",
+							"if (res.token) {",
+							"    pm.environment.set('token', res.token);",
+							"    pm.environment.set('alunoId', res.usuarioId);",
+							"    console.log('✅ Token salvo! Usuário: ' + res.nome);",
+							"}",
+							"pm.test('Login retorna 200', function() { pm.response.to.have.status(200); });",
+							"pm.test('Token JWT presente', function() { pm.expect(pm.response.json().token).to.be.a('string'); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [{ "key": "Content-Type", "value": "application/json" }],
+				"body": { "mode": "raw", "raw": "{\n    \"matricula\": \"admin\",\n    \"senha\": \"seed@2025\"\n}" },
+				"url": { "raw": "http://localhost:8081/auth/login" },
+				"description": "⚠️ Execute este request PRIMEIRO. O token JWT é salvo automaticamente para todos os outros requests."
+			}
+		},
+		{
+			"name": "📝 ms-simulados",
+			"description": "Fluxo completo de simulado: iniciar sessão → responder questões → finalizar → ver resultado.\n\nExecute na ordem de 1 a 8.",
+			"item": [
+				{
+					"name": "1. Listar Simulados",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Retorna lista', function() { pm.expect(pm.response.json()).to.be.an('array'); });",
+						"var res = pm.response.json();",
+						"if (res.length > 0) { pm.environment.set('simuladoId', res[0].id); console.log('simuladoId: ' + res[0].id); }"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados" },
+						"description": "Lista todos os simulados disponíveis."
+					}
+				},
+				{
+					"name": "2. Detalhe do Simulado",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Tem título', function() { pm.expect(pm.response.json().titulo).to.be.a('string'); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}" }
+					}
+				},
+				{
+					"name": "3. Iniciar Sessão",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Sessão criada (201) ou já existia (200)', function() { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+						"pm.test('Sessão tem alunoId', function() { pm.expect(pm.response.json().alunoId).to.be.a('string'); });",
+						"console.log('Sessão iniciada em: ' + pm.response.json().iniciadoEm);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}/iniciar" },
+						"description": "Cria sessão no Redis (TTL 30 min). Idempotente: 201 na primeira vez, 200 se já existir."
+					}
+				},
+				{
+					"name": "4. Ver Sessão Ativa",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Sessão tem respostas', function() { pm.expect(pm.response.json().respostas).to.be.an('object'); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}/sessao" },
+						"description": "Retorna o estado atual da sessão Redis: questão atual e respostas registradas."
+					}
+				},
+				{
+					"name": "5. Registrar Resposta",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Resposta salva na sessão', function() { pm.expect(Object.keys(pm.response.json().respostas).length).to.be.greaterThan(0); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": { "mode": "raw", "raw": "{\n    \"questaoIndex\": \"0\",\n    \"alternativaId\": \"{{alternativaId}}\"\n}" },
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}/responder" },
+						"description": "Salva a alternativa escolhida na sessão Redis. questaoIndex é 0-based."
+					}
+				},
+				{
+					"name": "6. Finalizar Simulado",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Resultado tem nota', function() { pm.expect(pm.response.json().nota).to.be.a('number'); });",
+						"pm.test('Resultado tem acertos', function() { pm.expect(pm.response.json().acertos).to.be.a('number'); });",
+						"var res = pm.response.json();",
+						"if (res.tentativaId) pm.environment.set('tentativaId', res.tentativaId);",
+						"console.log('✅ Nota: ' + res.nota + ' | Acertos: ' + res.acertos + '/' + res.totalQuestoes);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}/finalizar" },
+						"description": "Encerra a sessão Redis, calcula a nota e persiste TentativaSimulado + RespostaTentativa no banco."
+					}
+				},
+				{
+					"name": "7. Consultar Resultado",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Tem tentativaId', function() { pm.expect(pm.response.json().tentativaId).to.be.a('string'); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/{{simuladoId}}/resultado" },
+						"description": "Retorna a nota da última tentativa do aluno neste simulado."
+					}
+				},
+				{
+					"name": "8. Histórico de Tentativas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('É uma lista', function() { pm.expect(pm.response.json()).to.be.an('array'); });",
+						"pm.test('Tem pelo menos 1 tentativa', function() { pm.expect(pm.response.json().length).to.be.greaterThan(0); });",
+						"console.log('Total de tentativas: ' + pm.response.json().length);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8088/simulados/minhas-tentativas" },
+						"description": "Histórico completo de todas as tentativas do aluno em qualquer simulado."
+					}
+				}
+			]
+		},
+		{
+			"name": "🎓 ms-cursos",
+			"description": "Gerenciamento de cursos e inscrições. Ao concluir uma inscrição, um evento é publicado no Kafka e o ms-certificados emite o certificado automaticamente.",
+			"item": [
+				{
+					"name": "1. Listar Cursos",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Retorna cursos', function() { pm.expect(pm.response.json().length).to.be.greaterThan(0); });",
+						"console.log('Total de cursos: ' + pm.response.json().length);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "http://localhost:8085/cursos" },
+						"description": "Rota pública — não requer autenticação."
+					}
+				},
+				{
+					"name": "2. Detalhe do Curso",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Tem nome', function() { pm.expect(pm.response.json().nome).to.be.a('string'); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "http://localhost:8085/cursos/{{cursoId}}" }
+					}
+				},
+				{
+					"name": "3. Criar Curso",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 201', function() { pm.response.to.have.status(201); });",
+						"pm.test('Curso criado com id', function() { pm.expect(pm.response.json().id).to.be.a('string'); });",
+						"console.log('Curso criado: ' + pm.response.json().nome);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": { "mode": "raw", "raw": "{\n    \"nome\": \"Preparação ENEM 2025\",\n    \"descricao\": \"Revisão completa de todas as disciplinas do ENEM\",\n    \"cargaHorasEstimada\": 80\n}" },
+						"url": { "raw": "http://localhost:8085/cursos" }
+					}
+				},
+				{
+					"name": "4. Inscrever no Curso",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 201', function() { pm.response.to.have.status(201); });",
+						"var res = pm.response.json();",
+						"if (res.id) { pm.environment.set('inscricaoId', res.id); console.log('✅ Inscrito! inscricaoId: ' + res.id); }"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": { "mode": "raw", "raw": "{\n    \"cursoId\": \"{{cursoIdMatematica}}\"\n}" },
+						"url": { "raw": "http://localhost:8085/inscricoes" },
+						"description": "Inscreve o aluno no curso de Matemática Básica. Salva inscricaoId automaticamente."
+					}
+				},
+				{
+					"name": "5. Minhas Inscrições",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('É uma lista', function() { pm.expect(pm.response.json()).to.be.an('array'); });",
+						"console.log('Total de inscrições: ' + pm.response.json().length);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8085/inscricoes/minhas" }
+					}
+				},
+				{
+					"name": "6. Concluir Inscrição → gera certificado",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Inscrição marcada como concluída', function() { pm.expect(pm.response.json().concluido).to.be.true; });",
+						"console.log('✅ Evento publicado no Kafka → ms-certificados emitirá o certificado em segundos.');"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8085/inscricoes/{{inscricaoId}}/concluir" },
+						"description": "Conclui a inscrição e publica evento 'inscricao-concluida' no Kafka. O ms-certificados consome o evento e gera o PDF do certificado no MinIO."
+					}
+				},
+				{
+					"name": "7. Stats dos Cursos",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8085/stats" }
+					}
+				}
+			]
+		},
+		{
+			"name": "❓ ms-questoes",
+			"description": "Banco de questões ENEM (2009–2023). 2.740 questões importadas automaticamente na inicialização do serviço.",
+			"item": [
+				{
+					"name": "1. Listar Disciplinas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('16 disciplinas disponíveis', function() { pm.expect(pm.response.json().length).to.equal(16); });",
+						"console.log('Disciplinas: ' + pm.response.json().map(function(d){ return d.nome; }).join(', '));"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8087/disciplinas" }
+					}
+				},
+				{
+					"name": "2. Listar Questões (paginado)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"var res = pm.response.json();",
+						"pm.test('2740 questões no banco', function() { pm.expect(res.totalElements).to.equal(2740); });",
+						"var items = res.content || [];",
+						"if (items.length > 0) pm.environment.set('questaoId', items[0].id);",
+						"console.log('Total no banco: ' + res.totalElements + ' questões');"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8087/questoes?page=0&size=10" },
+						"description": "Retorna questões paginadas. totalElements mostra o total de 2.740 questões ENEM importadas."
+					}
+				},
+				{
+					"name": "3. Filtrar por Disciplina (Matemática)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Questões são de Matemática', function() {",
+						"    var items = pm.response.json().content || [];",
+						"    if (items.length > 0) pm.expect(items[0].disciplina).to.equal('Matemática');",
+						"});"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8087/questoes?disciplina=Matem%C3%A1tica&page=0&size=5" }
+					}
+				},
+				{
+					"name": "4. Detalhe da Questão + Alternativas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Questão tem alternativas', function() { pm.expect(pm.response.json().alternativas).to.be.an('array'); });",
+						"var res = pm.response.json();",
+						"if (res.alternativas && res.alternativas.length > 0) {",
+						"    pm.environment.set('alternativaId', res.alternativas[0].id);",
+						"    console.log('alternativaId salvo: ' + res.alternativas[0].id);",
+						"}"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8087/questoes/{{questaoId}}" },
+						"description": "Retorna a questão com enunciado, disciplina, dificuldade e todas as alternativas."
+					}
+				}
+			]
+		},
+		{
+			"name": "📜 ms-certificados",
+			"description": "Emissão automática de certificados via Kafka. Certificados gerados como PDF e armazenados no MinIO.",
+			"item": [
+				{
+					"name": "1. Health Check",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Serviço UP', function() { pm.response.to.have.status(200); });",
+						"pm.test('Status é UP', function() { pm.expect(pm.response.json().status).to.eql('UP'); });"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "http://localhost:8086/health" },
+						"description": "Verifica se o serviço está operacional."
+					}
+				},
+				{
+					"name": "2. Buscar Certificado (Biologia Celular)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Certificado válido', function() { pm.expect(pm.response.json().valido).to.be.true; });",
+						"pm.test('Tem QR Code', function() { pm.expect(pm.response.json().qrCode).to.be.a('string'); });",
+						"pm.test('Tem URL do PDF', function() { pm.expect(pm.response.json().urlPdf).to.be.a('string'); });",
+						"var res = pm.response.json();",
+						"if (res.qrCode) pm.environment.set('certificadoQr', res.qrCode);",
+						"console.log('✅ Certificado emitido em: ' + res.emitidoEm);"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "http://localhost:8086/certificados/{{alunoId}}/{{cursoId}}" },
+						"description": "Busca o certificado do aluno no curso de Biologia Celular (já concluído). Salva o qrCode automaticamente."
+					}
+				},
+				{
+					"name": "3. Verificar Autenticidade por QR (público)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+						"pm.test('Certificado autêntico', function() { pm.expect(pm.response.json().valido).to.be.true; });",
+						"console.log('✅ Certificado verificado e válido!');"
+					], "type": "text/javascript" }}],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "http://localhost:8086/verificar-certificado/{{certificadoQr}}" },
+						"description": "Rota PÚBLICA para validar autenticidade de qualquer certificado pelo QR code. Não requer autenticação."
+					}
+				}
+			]
+		}
+	]
+}
