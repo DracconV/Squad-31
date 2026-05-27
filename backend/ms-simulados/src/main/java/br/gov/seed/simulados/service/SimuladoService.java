@@ -10,6 +10,7 @@ import br.gov.seed.simulados.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +38,7 @@ public class SimuladoService {
     private final HistoricoQuestaoAlunoRepository historicoRepo;
     private final OutboxEventRepository outboxRepo;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     /** Lista simulados disponíveis. Se turmaId informado, filtra pela turma. */
     public List<SimuladoResponse> listar(UUID turmaId) {
@@ -145,23 +148,48 @@ public class SimuladoService {
         respostaTentativaRepo.saveAll(respostas);
         historicoRepo.saveAll(historicos);
 
-        // Publica evento no outbox → OutboxPublisher envia para Kafka → ms-relatorios atualiza desempenho
-        try {
-            Simulado simulado = simuladoRepo.findById(simuladoId).orElse(null);
-            UUID turmaId = simulado != null ? simulado.getTurmaId() : null;
+        // Busca disciplina de cada questão via query no DB compartilhado
+        // e publica um OutboxEvent por disciplina (para ms-relatorios segmentar desempenho)
+        Simulado simulado = simuladoRepo.findById(simuladoId).orElse(null);
+        UUID turmaId = simulado != null ? simulado.getTurmaId() : null;
+
+        List<UUID> questaoIds = questoes.stream()
+                .map(sq -> sq.getId().getQuestaoId())
+                .toList();
+
+        // questaoId → nome da disciplina (query no DB compartilhado)
+        Map<UUID, String> disciplinaPorQuestao = buscarDisciplinasPorQuestoes(questaoIds);
+
+        // Agrupa acertos/total por disciplina
+        Map<String, int[]> acertosPorDisciplina = new HashMap<>();
+        for (int i = 0; i < questoes.size(); i++) {
+            UUID questaoId = questoes.get(i).getId().getQuestaoId();
+            String disc = disciplinaPorQuestao.getOrDefault(questaoId, "GERAL");
+            acertosPorDisciplina.computeIfAbsent(disc, k -> new int[]{0, 0});
+            acertosPorDisciplina.get(disc)[1]++; // total
+
+            UUID altId = respostas.get(i).getAlternativaId();
+            if (altId != null) {
+                Alternativa alt = alternativaCache.get(altId);
+                if (alt != null && alt.isCorreta()) {
+                    acertosPorDisciplina.get(disc)[0]++; // acertos
+                }
+            }
+        }
+
+        // Publica um evento por disciplina — sem try/catch: falha reverte toda a transação (atomicidade)
+        for (Map.Entry<String, int[]> entry : acertosPorDisciplina.entrySet()) {
             OutboxEvent evento = new OutboxEvent();
             evento.setTipo("SIMULADO_FINALIZADO");
-            evento.setPayload(objectMapper.writeValueAsString(java.util.Map.of(
-                    "alunoId", alunoId.toString(),
-                    "turmaId", turmaId != null ? turmaId.toString() : "",
+            evento.setPayload(objectMapper.writeValueAsString(Map.of(
+                    "alunoId",    alunoId.toString(),
+                    "turmaId",    turmaId != null ? turmaId.toString() : "",
                     "simuladoId", simuladoId.toString(),
-                    "disciplina", "GERAL",
-                    "acertos", acertos,
-                    "total", total
+                    "disciplina", entry.getKey(),
+                    "acertos",    entry.getValue()[0],
+                    "total",      entry.getValue()[1]
             )));
             outboxRepo.save(evento);
-        } catch (Exception e) {
-            log.warn("Falha ao registrar evento outbox para simulado {}: {}", simuladoId, e.getMessage());
         }
 
         log.info("Simulado {} finalizado por aluno {} — nota={} acertos={}/{}", simuladoId, alunoId, nota, acertos, total);
@@ -283,6 +311,21 @@ public class SimuladoService {
             throw new RuntimeException("Questão não encontrada no simulado");
         }
         simuladoQuestaoRepo.deleteById(sqId);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Consulta o nome da disciplina de cada questão no DB compartilhado. */
+    private Map<UUID, String> buscarDisciplinasPorQuestoes(List<UUID> questaoIds) {
+        if (questaoIds.isEmpty()) return Map.of();
+        String placeholders = questaoIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT q.id, d.nome FROM questao q JOIN disciplina d ON d.id = q.disciplina_id WHERE q.id IN (" + placeholders + ")";
+        Object[] params = questaoIds.stream().map(UUID::toString).toArray();
+        Map<UUID, String> resultado = new HashMap<>();
+        jdbcTemplate.query(sql, params, rs -> {
+            resultado.put(UUID.fromString(rs.getString(1)), rs.getString(2));
+        });
+        return resultado;
     }
 
     // ── Gabarito ──────────────────────────────────────────────────────────────
