@@ -16,8 +16,17 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
 
     Page<Questao> findByDisciplina_IdAndAtivaTrue(UUID disciplinaId, Pageable pageable);
 
-    @Query("""
-        SELECT q FROM Questao q
+    // JOIN FETCH disciplina evita LazyInitializationException após mudança para FetchType.LAZY
+    @Query(value = """
+        SELECT q FROM Questao q JOIN FETCH q.disciplina
+        WHERE q.ativa = true
+          AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
+          AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade)
+          AND (:tipo IS NULL OR q.tipo = :tipo)
+          AND (:nivelEnsino IS NULL OR q.nivelEnsino = :nivelEnsino)
+        """,
+        countQuery = """
+        SELECT count(q) FROM Questao q
         WHERE q.ativa = true
           AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
           AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade)
@@ -30,8 +39,15 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
                           @Param("nivelEnsino") String nivelEnsino,
                           Pageable pageable);
 
-    @Query("""
-        SELECT q FROM Questao q
+    @Query(value = """
+        SELECT q FROM Questao q JOIN FETCH q.disciplina
+        WHERE q.ativa = true
+          AND q.nivelEnsino IN :niveisPermitidos
+          AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
+          AND (:dificuldade IS NULL OR q.dificuldade = :dificuldade)
+        """,
+        countQuery = """
+        SELECT count(q) FROM Questao q
         WHERE q.ativa = true
           AND q.nivelEnsino IN :niveisPermitidos
           AND (:disciplinaId IS NULL OR q.disciplina.id = :disciplinaId)
@@ -44,5 +60,6 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
 
     long countByAtivaTrue();
 
-    Page<Questao> findByCriadoPorAndAtivaTrue(UUID criadoPor, Pageable pageable);
+    @Query("SELECT q FROM Questao q JOIN FETCH q.disciplina WHERE q.criadoPor = :criadoPor AND q.ativa = true")
+    Page<Questao> findByCriadoPorAndAtivaTrue(@Param("criadoPor") UUID criadoPor, Pageable pageable);
 }

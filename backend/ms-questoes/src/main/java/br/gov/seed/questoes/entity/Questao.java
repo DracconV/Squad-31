@@ -33,7 +33,7 @@ public class Questao {
     @Column(name = "nivel_ensino", nullable = false, length = 20)
     private String nivelEnsino = "MEDIO";
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina;
 
