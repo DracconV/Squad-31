@@ -2,19 +2,14 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-# Instala o CLI do swaggo para gerar a documentação Swagger
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+# Copia go.mod/go.sum e baixa dependências (camada cacheada)
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY go.mod go.sum* ./
-RUN go mod download || true
-
+# Copia fontes (inclui docs/ já gerado localmente)
 COPY . .
 
-# Adiciona dependências do swagger, gera docs e compila
-RUN go get github.com/swaggo/gin-swagger github.com/swaggo/files && \
-    go mod tidy && \
-    swag init -g main.go --output docs
-
+# Compila o binário
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/ms-certificados .
 
 # ----- runtime stage -----

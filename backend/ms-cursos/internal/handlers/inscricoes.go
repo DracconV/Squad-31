@@ -186,7 +186,7 @@ func (h *InscricaoHandler) Concluir(c *gin.Context) {
 		return
 	}
 
-	// Publica evento Kafka em goroutine (falha não bloqueia resposta)
+	// Publica evento Kafka em goroutine com retry (falha não bloqueia resposta)
 	if h.producer != nil {
 		go func() {
 			evt := kafkapkg.EventoInscricaoConcluida{
@@ -196,9 +196,20 @@ func (h *InscricaoHandler) Concluir(c *gin.Context) {
 				NomeCurso:   curso.Nome,
 				ConcluidoEm: agora,
 			}
-			if err := h.producer.PublicarConclusao(context.Background(), evt); err != nil {
-				log.Printf("[kafka] erro ao publicar inscricao-concluida: %v", err)
+			var lastErr error
+			for attempt := 1; attempt <= 3; attempt++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				lastErr = h.producer.PublicarConclusao(ctx, evt)
+				cancel()
+				if lastErr == nil {
+					return
+				}
+				log.Printf("[kafka] tentativa %d falhou para inscricao-concluida alunoId=%s: %v", attempt, evt.AlunoID, lastErr)
+				if attempt < 3 {
+					time.Sleep(time.Duration(attempt) * 2 * time.Second)
+				}
 			}
+			log.Printf("[kafka] ERRO DEFINITIVO ao publicar inscricao-concluida alunoId=%s cursoId=%s: %v", evt.AlunoID, evt.CursoID, lastErr)
 		}()
 	}
 

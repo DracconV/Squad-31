@@ -104,6 +104,12 @@ services:
           --partitions 1 \
           --replication-factor 1
         echo "Topico inscricao-concluida garantido."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+          --create --if-not-exists \
+          --topic simulado-eventos \
+          --partitions 1 \
+          --replication-factor 1
+        echo "Topico simulado-eventos garantido."
     networks:
       - seed-network
 
@@ -293,6 +299,76 @@ services:
       retries: 5
       start_period: 90s
 
+  ms-simulados:
+    build:
+      context: ../backend/ms-simulados
+      dockerfile: Dockerfile
+    container_name: seed-ms-simulados
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASS: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKER: kafka:29092
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8088
+    ports:
+      - "8088:8088"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  ms-relatorios:
+    build:
+      context: ../backend/ms-relatorios
+      dockerfile: Dockerfile
+    container_name: seed-ms-relatorios
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8089
+    ports:
+      - "8089:8089"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   api-gateway:
     build:
       context: ../backend/api-gateway
@@ -311,6 +387,8 @@ services:
       MS_CURSOS_URL: http://ms-cursos:8085
       MS_CERTIFICADOS_URL: http://ms-certificados:8086
       MS_QUESTOES_URL: http://ms-questoes:8087
+      MS_SIMULADOS_URL: http://ms-simulados:8088
+      MS_RELATORIOS_URL: http://ms-relatorios:8089
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8080:8080"

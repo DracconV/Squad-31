@@ -43,6 +43,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .getPayload();
 
             String perfil = claims.get("perfil", String.class);
+            request.setAttribute("userID", claims.getSubject());
+            request.setAttribute("perfil", perfil);
             var auth = new UsernamePasswordAuthenticationToken(
                     claims.getSubject(),
                     null,

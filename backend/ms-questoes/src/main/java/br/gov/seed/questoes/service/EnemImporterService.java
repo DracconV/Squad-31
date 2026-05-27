@@ -36,19 +36,13 @@ public class EnemImporterService {
     @Value("${enem.api.auto-import}")
     private boolean autoImport;
 
-    // Limite máximo aceito pela API pública
     private static final int PAGE_LIMIT = 50;
-
-    // Delay entre páginas para respeitar rate limit (~1 req/s com margem)
+   
     private static final long DELAY_ENTRE_PAGINAS_MS = 1200;
 
-    // Delay entre anos
     private static final long DELAY_ENTRE_ANOS_MS = 2000;
 
-    // Máximo de retentativas em caso de 429
     private static final int MAX_RETRIES = 3;
-
-    // ── DTOs internos para deserializar a API ──────────────────────────────
 
     @Data @JsonIgnoreProperties(ignoreUnknown = true)
     public static class QuestoesResponse {
@@ -82,8 +76,6 @@ public class EnemImporterService {
         private Boolean isCorrect;
     }
 
-    // ── Mapeamento disciplina ──────────────────────────────────────────────
-
     private static final Map<String, String> DISCIPLINA_MAP = Map.of(
             "linguagens",        "Linguagens e Códigos",
             "matematica",        "Matemática",
@@ -91,19 +83,13 @@ public class EnemImporterService {
             "ciencias-natureza", "Ciências da Natureza"
     );
 
-    // ── Cache de disciplinas em memória ───────────────────────────────────
-
     private final Map<String, Disciplina> disciplinaCache = new HashMap<>();
-
-    // ── Anos conhecidos do ENEM ────────────────────────────────────────────
 
     private static final int[] ANOS_ENEM = {
             2009, 2010, 2011, 2012, 2013, 2014,
             2015, 2016, 2017, 2018, 2019, 2020,
             2021, 2022, 2023
     };
-
-    // ── Ponto de entrada no startup ───────────────────────────────────────
 
     @EventListener(ApplicationReadyEvent.class)
     @Async
@@ -120,8 +106,6 @@ public class EnemImporterService {
         importarTudo();
     }
 
-    // ── Disparo manual (via controller) ───────────────────────────────────
-
     public void importarTudo() {
         UUID adminId = buscarAdminId();
         RestTemplate rest = new RestTemplate();
@@ -135,15 +119,12 @@ public class EnemImporterService {
             totalImportadas += importadas;
             log.info("Ano {}: {} questões importadas. Total acumulado: {}", ano, importadas, totalImportadas);
 
-            // Delay entre anos (exceto após o último)
             if (i < ANOS_ENEM.length - 1) {
                 sleep(DELAY_ENTRE_ANOS_MS);
             }
         }
         log.info("Importação concluída. Total: {} questões.", totalImportadas);
     }
-
-    // ── Importa todas as questões de um ano com paginação ─────────────────
 
     private int importarAno(RestTemplate rest, int ano, UUID adminId) {
         int offset = 0;
@@ -176,18 +157,18 @@ public class EnemImporterService {
         return importadas;
     }
 
-    // ── Busca com retry em caso de 429 ────────────────────────────────────
+   
 
     private QuestoesResponse buscarComRetry(RestTemplate rest, String url, int ano, int offset) {
         for (int tentativa = 1; tentativa <= MAX_RETRIES; tentativa++) {
             try {
                 return rest.getForObject(url, QuestoesResponse.class);
             } catch (HttpClientErrorException.TooManyRequests e) {
-                // Extrai o tempo de espera sugerido da mensagem (ex: "Try again in 7224ms")
+                
                 long waitMs = extrairWaitMs(e.getMessage());
                 log.warn("Rate limit atingido (ano={} offset={}). Aguardando {}ms antes de tentar novamente ({}/{}).",
                         ano, offset, waitMs, tentativa, MAX_RETRIES);
-                sleep(waitMs + 500); // margem extra de 500ms
+                sleep(waitMs + 500); 
             } catch (Exception e) {
                 log.warn("Erro ao buscar ano={} offset={}: {}", ano, offset, e.getMessage());
                 return null;
@@ -197,7 +178,7 @@ public class EnemImporterService {
         return null;
     }
 
-    // ── Extrai ms do texto "Try again in 7224ms" ──────────────────────────
+   
 
     private long extrairWaitMs(String message) {
         if (message == null) return 8000;
@@ -208,10 +189,10 @@ public class EnemImporterService {
                 return Long.parseLong(message.substring(idx + 3, end).trim());
             }
         } catch (Exception ignored) {}
-        return 8000; // fallback seguro
+        return 8000; 
     }
 
-    // ── Persiste uma questão ───────────────────────────────────────────────
+    
 
     @Transactional
     public void salvarQuestao(EnemQuestion eq, UUID adminId) {
@@ -227,7 +208,7 @@ public class EnemImporterService {
                         .orElseGet(() -> disciplinaRepository.save(
                                 Disciplina.builder().nome(nome).build())));
 
-        // Monta enunciado: contexto + introdução + título
+        
         StringBuilder enunciado = new StringBuilder();
         if (eq.getContext() != null && !eq.getContext().isBlank()) {
             enunciado.append(eq.getContext()).append("\n\n");
@@ -245,8 +226,9 @@ public class EnemImporterService {
         Questao questao = Questao.builder()
                 .enunciado(textoFinal)
                 .tipo("MULTIPLA_ESCOLHA")
-                .dificuldade("MEDIO")
+                .dificuldade(classificarDificuldade(eq.getYear(), eq.getIndex()))
                 .tipoUso("AMBOS")
+                .nivelEnsino("MEDIO")
                 .disciplina(disciplina)
                 .criadoPor(adminId)
                 .ativa(true)
@@ -271,7 +253,32 @@ public class EnemImporterService {
         questaoRepository.save(questao);
     }
 
-    // ── Busca UUID do admin no banco compartilhado ─────────────────────────
+    /**
+     * Classifica a dificuldade pelo ano do ENEM + índice da questão no caderno.
+     *
+     * Critério combinado (score 0–4):
+     *   Ano  2009–2013 → +0 | 2014–2018 → +1 | 2019–2023 → +2
+     *   Idx  1–15      → +0 | 16–30     → +1 | 31–45     → +2
+     *
+     *   Score 0–1 → FACIL | 2 → MEDIO | 3–4 → DIFICIL
+     */
+    private String classificarDificuldade(Integer year, Integer index) {
+        int score = 0;
+
+        if (year != null) {
+            if (year >= 2019)      score += 2;
+            else if (year >= 2014) score += 1;
+        }
+
+        if (index != null) {
+            if (index > 30)      score += 2;
+            else if (index > 15) score += 1;
+        }
+
+        if (score <= 1) return "FACIL";
+        if (score <= 2) return "MEDIO";
+        return "DIFICIL";
+    }
 
     private UUID buscarAdminId() {
         try {
@@ -285,8 +292,6 @@ public class EnemImporterService {
         }
         return UUID.fromString("00000000-0000-0000-0000-000000000001");
     }
-
-    // ── Utilitário de sleep ────────────────────────────────────────────────
 
     private void sleep(long ms) {
         try {
