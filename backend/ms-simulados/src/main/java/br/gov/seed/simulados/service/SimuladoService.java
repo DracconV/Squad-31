@@ -177,18 +177,22 @@ public class SimuladoService {
             }
         }
 
-        // Publica um evento por disciplina — sem try/catch: falha reverte toda a transação (atomicidade)
+        // Publica um evento por disciplina — RuntimeException mantém rollback do @Transactional
         for (Map.Entry<String, int[]> entry : acertosPorDisciplina.entrySet()) {
             OutboxEvent evento = new OutboxEvent();
             evento.setTipo("SIMULADO_FINALIZADO");
-            evento.setPayload(objectMapper.writeValueAsString(Map.of(
-                    "alunoId",    alunoId.toString(),
-                    "turmaId",    turmaId != null ? turmaId.toString() : "",
-                    "simuladoId", simuladoId.toString(),
-                    "disciplina", entry.getKey(),
-                    "acertos",    entry.getValue()[0],
-                    "total",      entry.getValue()[1]
-            )));
+            try {
+                evento.setPayload(objectMapper.writeValueAsString(Map.of(
+                        "alunoId",    alunoId.toString(),
+                        "turmaId",    turmaId != null ? turmaId.toString() : "",
+                        "simuladoId", simuladoId.toString(),
+                        "disciplina", entry.getKey(),
+                        "acertos",    entry.getValue()[0],
+                        "total",      entry.getValue()[1]
+                )));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                throw new RuntimeException("Erro ao serializar evento outbox para disciplina " + entry.getKey(), e);
+            }
             outboxRepo.save(evento);
         }
 
