@@ -8,9 +8,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 import java.util.List;
 import java.util.UUID;
@@ -70,5 +74,24 @@ public class UsuarioController {
     @Operation(summary = "Reativar usuario")
     public ResponseEntity<UsuarioDTO.Response> reativar(@PathVariable UUID id) {
         return ResponseEntity.ok(usuarioService.reativar(id));
+    }
+
+    /**
+     * Importa alunos/professores em lote via arquivo CSV.
+     *
+     * Formato do CSV (cabeçalho na 1ª linha):
+     *   nome,matricula,cpf,email,perfil,senhaTemporaria,instituicaoId
+     *
+     * Retorna resumo com linhas importadas, erros e detalhe por linha.
+     */
+    @PostMapping(value = "/importar-csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN_SEED', 'ADMIN_ESCOLA')")
+    @Operation(
+        summary = "Importar usuarios via CSV",
+        description = "Upload de arquivo CSV com colunas: nome,matricula,cpf,email,perfil,senhaTemporaria,instituicaoId"
+    )
+    public ResponseEntity<UsuarioDTO.ImportacaoResult> importarCsv(
+            @RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+        return ResponseEntity.ok(usuarioService.importarCsv(arquivo));
     }
 }

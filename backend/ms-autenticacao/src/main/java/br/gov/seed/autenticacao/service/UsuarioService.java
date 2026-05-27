@@ -9,7 +9,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -110,6 +116,70 @@ public class UsuarioService {
         UsuarioDTO.Response resp = UsuarioDTO.Response.from(usuarioRepository.save(usuario));
         auditLogService.registrar(id, "DESATIVAR_USUARIO", "usuario", id, null);
         return resp;
+    }
+
+    /**
+     * Importa usuários em lote a partir de arquivo CSV.
+     *
+     * Formato esperado (primeira linha = cabeçalho, ignorada):
+     *   nome,matricula,cpf,email,perfil,senhaTemporaria,instituicaoId
+     *
+     * Campos opcionais: cpf, email, instituicaoId.
+     * Perfis válidos: ALUNO_EM, ALUNO_EJA, ALUNO_PROF, PROFESSOR, ADMIN_ESCOLA, ADMIN_SEED.
+     */
+    @Transactional
+    public UsuarioDTO.ImportacaoResult importarCsv(MultipartFile arquivo) throws IOException {
+        List<UsuarioDTO.ImportacaoItem> detalhes = new ArrayList<>();
+        int linhaAtual = 0;
+        int importados = 0;
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(arquivo.getInputStream(), StandardCharsets.UTF_8))) {
+
+            String cabecalho = reader.readLine(); // ignora cabeçalho
+            if (cabecalho == null) {
+                return new UsuarioDTO.ImportacaoResult(0, 0, 0, List.of());
+            }
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) continue;
+                linhaAtual++;
+
+                try {
+                    String[] cols = line.split(",", -1);
+                    if (cols.length < 6) {
+                        detalhes.add(new UsuarioDTO.ImportacaoItem(
+                                linhaAtual, "", "erro", "Linha com colunas insuficientes (mín. 6)"));
+                        continue;
+                    }
+
+                    String nome        = cols[0].trim();
+                    String matricula   = cols[1].trim();
+                    String cpf         = cols[2].trim().isEmpty() ? null : cols[2].trim();
+                    String email       = cols[3].trim().isEmpty() ? null : cols[3].trim();
+                    String perfilStr   = cols[4].trim();
+                    String senha       = cols[5].trim();
+                    String instIdStr   = cols.length > 6 ? cols[6].trim() : null;
+
+                    UUID instId = (instIdStr != null && !instIdStr.isEmpty())
+                            ? UUID.fromString(instIdStr) : null;
+
+                    Usuario.Perfil perfil = Usuario.Perfil.valueOf(perfilStr);
+
+                    criar(new UsuarioDTO.CriarRequest(nome, matricula, cpf, email, senha, perfil, instId));
+                    importados++;
+                    detalhes.add(new UsuarioDTO.ImportacaoItem(linhaAtual, matricula, "ok", "Importado com sucesso"));
+
+                } catch (Exception e) {
+                    String[] cols = line.split(",", -1);
+                    String mat = cols.length > 1 ? cols[1].trim() : "";
+                    detalhes.add(new UsuarioDTO.ImportacaoItem(linhaAtual, mat, "erro", e.getMessage()));
+                }
+            }
+        }
+
+        return new UsuarioDTO.ImportacaoResult(linhaAtual, importados, linhaAtual - importados, detalhes);
     }
 
     @Transactional
