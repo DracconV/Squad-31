@@ -150,6 +150,7 @@ class SimuladoControllerTest {
         mockSession.setAttribute("sessao_simulado_" + simuladoId, sessaoAtiva);
 
         mockMvc.perform(get("/simulados/{id}/sessao", simuladoId)
+                        .requestAttr("userID", alunoId.toString())
                         .session(mockSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.simuladoId").value(simuladoId.toString()));
