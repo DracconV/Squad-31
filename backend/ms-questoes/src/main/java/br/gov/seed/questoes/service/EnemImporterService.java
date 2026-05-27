@@ -226,8 +226,9 @@ public class EnemImporterService {
         Questao questao = Questao.builder()
                 .enunciado(textoFinal)
                 .tipo("MULTIPLA_ESCOLHA")
-                .dificuldade("MEDIO")
+                .dificuldade(classificarDificuldade(eq.getYear(), eq.getIndex()))
                 .tipoUso("AMBOS")
+                .nivelEnsino("MEDIO")
                 .disciplina(disciplina)
                 .criadoPor(adminId)
                 .ativa(true)
@@ -250,6 +251,33 @@ public class EnemImporterService {
 
         questao.setAlternativas(alternativas);
         questaoRepository.save(questao);
+    }
+
+    /**
+     * Classifica a dificuldade pelo ano do ENEM + índice da questão no caderno.
+     *
+     * Critério combinado (score 0–4):
+     *   Ano  2009–2013 → +0 | 2014–2018 → +1 | 2019–2023 → +2
+     *   Idx  1–15      → +0 | 16–30     → +1 | 31–45     → +2
+     *
+     *   Score 0–1 → FACIL | 2 → MEDIO | 3–4 → DIFICIL
+     */
+    private String classificarDificuldade(Integer year, Integer index) {
+        int score = 0;
+
+        if (year != null) {
+            if (year >= 2019)      score += 2;
+            else if (year >= 2014) score += 1;
+        }
+
+        if (index != null) {
+            if (index > 30)      score += 2;
+            else if (index > 15) score += 1;
+        }
+
+        if (score <= 1) return "FACIL";
+        if (score <= 2) return "MEDIO";
+        return "DIFICIL";
     }
 
     private UUID buscarAdminId() {

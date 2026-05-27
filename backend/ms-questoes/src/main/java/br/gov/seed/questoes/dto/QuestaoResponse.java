@@ -12,13 +12,27 @@ public record QuestaoResponse(
         String tipo,
         String dificuldade,
         String tipoUso,
+        String nivelEnsino,
         String disciplina,
         List<AlternativaDto> alternativas
 ) {
+    /** Para uso por alunos — gabarito oculto (correta = null). */
     public static QuestaoResponse from(Questao q) {
+        return from(q, false);
+    }
+
+    /**
+     * @param incluirGabarito true para PROFESSOR/ADMIN — expõe qual alternativa é correta.
+     *                        false para ALUNO — campo {@code correta} retorna null.
+     */
+    public static QuestaoResponse from(Questao q, boolean incluirGabarito) {
         List<AlternativaDto> alts = q.getAlternativas() == null ? List.of() :
                 q.getAlternativas().stream()
-                        .map(a -> new AlternativaDto(a.getId(), a.getTexto(), a.isCorreta(), a.getOrdem()))
+                        .map(a -> new AlternativaDto(
+                                a.getId(),
+                                a.getTexto(),
+                                incluirGabarito ? a.isCorreta() : null,
+                                a.getOrdem()))
                         .collect(Collectors.toList());
         return new QuestaoResponse(
                 q.getId(),
@@ -26,6 +40,7 @@ public record QuestaoResponse(
                 q.getTipo(),
                 q.getDificuldade(),
                 q.getTipoUso(),
+                q.getNivelEnsino(),
                 q.getDisciplina() != null ? q.getDisciplina().getNome() : null,
                 alts
         );

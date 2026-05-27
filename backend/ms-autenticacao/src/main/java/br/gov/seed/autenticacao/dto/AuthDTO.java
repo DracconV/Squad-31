@@ -1,6 +1,7 @@
 package br.gov.seed.autenticacao.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class AuthDTO {
 
@@ -29,6 +30,26 @@ public class AuthDTO {
         String senhaTemporaria,
 
         @NotBlank(message = "Nova senha obrigatória")
+        String novaSenha
+    ) {}
+
+    public record SolicitarRedefinicaoRequest(
+        @NotBlank(message = "Matrícula obrigatória")
+        String matricula
+    ) {}
+
+    public record RedefinicaoResponse(
+        String token,
+        String expiraEm,
+        String mensagem
+    ) {}
+
+    public record RedefinirSenhaRequest(
+        @NotBlank(message = "Token obrigatório")
+        String token,
+
+        @NotBlank(message = "Nova senha obrigatória")
+        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
         String novaSenha
     ) {}
 }

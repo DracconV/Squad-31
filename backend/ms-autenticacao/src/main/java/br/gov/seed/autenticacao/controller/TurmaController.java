@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,8 +29,20 @@ public class TurmaController {
     @PostMapping
     @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
     @Operation(summary = "Criar turma", description = "Professores e administradores podem criar turmas.")
-    public ResponseEntity<TurmaDTO.Response> criar(@Valid @RequestBody TurmaDTO.CriarRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(turmaService.criar(request));
+    public ResponseEntity<TurmaDTO.Response> criar(
+            @Valid @RequestBody TurmaDTO.CriarRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID professorId = extrairId(userDetails);
+        return ResponseEntity.status(HttpStatus.CREATED).body(turmaService.criar(request, professorId));
+    }
+
+    @GetMapping("/minhas")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @Operation(summary = "Minhas turmas", description = "Retorna as turmas criadas pelo professor autenticado.")
+    public ResponseEntity<List<TurmaDTO.Response>> minhas(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID professorId = extrairId(userDetails);
+        return ResponseEntity.ok(turmaService.listarMinhas(professorId));
     }
 
     @GetMapping
@@ -40,6 +54,15 @@ public class TurmaController {
             return ResponseEntity.ok(turmaService.listarPorInstituicao(instituicaoId));
         }
         return ResponseEntity.ok(turmaService.listarTodas());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    @Operation(summary = "Atualizar turma", description = "Atualiza nome, ano ou modalidade de uma turma existente.")
+    public ResponseEntity<TurmaDTO.Response> atualizar(
+            @PathVariable UUID id,
+            @RequestBody TurmaDTO.AtualizarRequest request) {
+        return ResponseEntity.ok(turmaService.atualizar(id, request));
     }
 
     @PostMapping("/{turmaId}/alunos")
@@ -67,5 +90,12 @@ public class TurmaController {
     @Operation(summary = "Listar alunos da turma")
     public ResponseEntity<List<TurmaDTO.AlunoResponse>> listarAlunos(@PathVariable UUID turmaId) {
         return ResponseEntity.ok(turmaService.listarAlunos(turmaId));
+    }
+
+    private UUID extrairId(UserDetails userDetails) {
+        if (userDetails instanceof br.gov.seed.autenticacao.entity.Usuario usuario) {
+            return usuario.getId();
+        }
+        throw new IllegalStateException("Usuario nao identificado");
     }
 }

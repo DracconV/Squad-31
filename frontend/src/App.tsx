@@ -8,6 +8,7 @@ import type { Perfil } from './lib/auth'
 
 import LoginPage           from './pages/LoginPage'
 import PrimeiroAcessoPage  from './pages/PrimeiroAcessoPage'
+import RedefinirSenhaPage  from './pages/RedefinirSenhaPage'
 import SemAcessoPage       from './pages/SemAcessoPage'
 import DashboardPage    from './pages/DashboardPage'
 import SimuladosPage    from './pages/SimuladosPage'
@@ -43,6 +44,7 @@ function App() {
       {/* Públicas */}
       <Route path="/login"           element={<LoginPage />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcessoPage />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/sem-acesso"      element={<SemAcessoPage />} />
 
       {/* Raiz → redireciona para dashboard */}

@@ -78,9 +78,9 @@ class QuestaoServiceTest {
     @DisplayName("listar retorna página de questões mapeadas para DTO")
     void listar_retornaPageDTO() {
         Page<Questao> page = new PageImpl<>(List.of(questao));
-        when(questaoRepository.filtrar(any(), any(), any(), any())).thenReturn(page);
+        when(questaoRepository.filtrar(any(), any(), any(), any(), any())).thenReturn(page);
 
-        Page<QuestaoResponse> resultado = questaoService.listar(null, null, null, PageRequest.of(0, 20));
+        Page<QuestaoResponse> resultado = questaoService.listar(null, null, null, null, null, PageRequest.of(0, 20), false);
 
         assertThat(resultado.getContent()).hasSize(1);
         assertThat(resultado.getContent().get(0).enunciado()).isEqualTo("Quanto é 2 + 2?");
@@ -92,11 +92,11 @@ class QuestaoServiceTest {
     void listar_comFiltros_passaParametros() {
         UUID disciplinaId = UUID.randomUUID();
         Page<Questao> page = new PageImpl<>(List.of());
-        when(questaoRepository.filtrar(eq(disciplinaId), eq("FACIL"), eq("MULTIPLA_ESCOLHA"), any()))
+        when(questaoRepository.filtrar(eq(disciplinaId), eq("FACIL"), eq("MULTIPLA_ESCOLHA"), any(), any()))
                 .thenReturn(page);
 
         Page<QuestaoResponse> resultado = questaoService.listar(
-                disciplinaId, "FACIL", "MULTIPLA_ESCOLHA", PageRequest.of(0, 20));
+                disciplinaId, "FACIL", "MULTIPLA_ESCOLHA", null, null, PageRequest.of(0, 20), false);
 
         assertThat(resultado.getContent()).isEmpty();
     }
@@ -108,7 +108,7 @@ class QuestaoServiceTest {
     void buscarPorId_questaoAtiva_retornaDTO() {
         when(questaoRepository.findById(questao.getId())).thenReturn(Optional.of(questao));
 
-        QuestaoResponse resp = questaoService.buscarPorId(questao.getId());
+        QuestaoResponse resp = questaoService.buscarPorId(questao.getId(), false);
 
         assertThat(resp.id()).isEqualTo(questao.getId());
         assertThat(resp.alternativas()).hasSize(1);
@@ -120,7 +120,7 @@ class QuestaoServiceTest {
         UUID id = UUID.randomUUID();
         when(questaoRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> questaoService.buscarPorId(id))
+        assertThatThrownBy(() -> questaoService.buscarPorId(id, false))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining(id.toString());
     }
@@ -131,7 +131,7 @@ class QuestaoServiceTest {
         questao.setAtiva(false);
         when(questaoRepository.findById(questao.getId())).thenReturn(Optional.of(questao));
 
-        assertThatThrownBy(() -> questaoService.buscarPorId(questao.getId()))
+        assertThatThrownBy(() -> questaoService.buscarPorId(questao.getId(), false))
                 .isInstanceOf(RuntimeException.class);
     }
 

@@ -23,13 +23,18 @@ public class Turma {
     @Column(nullable = false)
     private String modalidade;
 
+    @Column(name = "professor_id")
+    private UUID professorId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicao;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean ativo = true;
 
+    @Builder.Default
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 }

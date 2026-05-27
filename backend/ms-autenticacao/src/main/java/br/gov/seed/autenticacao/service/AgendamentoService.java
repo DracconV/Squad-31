@@ -58,6 +58,90 @@ public class AgendamentoService {
     }
 
     @Transactional
+    public AgendamentoDTO.SlotResponse criarSlot(AgendamentoDTO.CriarSlotRequest request) {
+        SlotProvaPratica slot = SlotProvaPratica.builder()
+                .moduloId(request.moduloId())
+                .data(request.data())
+                .local(request.local())
+                .vagasTotais(request.vagasTotais())
+                .vagasOcupadas(0)
+                .build();
+        return AgendamentoDTO.SlotResponse.from(slotRepository.save(slot));
+    }
+
+    public List<AgendamentoDTO.SlotResponse> listarTodosSlots() {
+        return slotRepository.findAll().stream()
+                .map(AgendamentoDTO.SlotResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public AgendamentoDTO.SlotResponse atualizarSlot(UUID id, AgendamentoDTO.AtualizarSlotRequest request) {
+        SlotProvaPratica slot = slotRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Slot nao encontrado: " + id));
+        if (request.data() != null) slot.setData(request.data());
+        if (request.local() != null && !request.local().isBlank()) slot.setLocal(request.local());
+        if (request.vagasTotais() != null) {
+            if (request.vagasTotais() < slot.getVagasOcupadas()) {
+                throw new IllegalStateException("Nao e possivel reduzir vagas abaixo das ja ocupadas (" + slot.getVagasOcupadas() + ")");
+            }
+            slot.setVagasTotais(request.vagasTotais());
+        }
+        return AgendamentoDTO.SlotResponse.from(slotRepository.save(slot));
+    }
+
+    @Transactional
+    public void removerSlot(UUID id) {
+        SlotProvaPratica slot = slotRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Slot nao encontrado: " + id));
+        if (slot.getVagasOcupadas() > 0) {
+            throw new IllegalStateException("Slot possui agendamentos — cancele-os antes de remover");
+        }
+        slotRepository.delete(slot);
+    }
+
+    public List<AgendamentoDTO.Response> listarTodosAgendamentos() {
+        return agendamentoRepository.findAllWithSlot().stream()
+                .map(AgendamentoDTO.Response::from)
+                .toList();
+    }
+
+    @Transactional
+    public AgendamentoDTO.Response reagendar(UUID agendamentoId, UUID alunoId, UUID novoSlotId) {
+        AgendamentoProva agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento nao encontrado: " + agendamentoId));
+
+        if (!agendamento.getAlunoId().equals(alunoId)) {
+            throw new IllegalArgumentException("Agendamento nao pertence ao aluno informado");
+        }
+
+        if (agendamento.getSlotId().equals(novoSlotId)) {
+            throw new IllegalArgumentException("O novo slot deve ser diferente do atual");
+        }
+
+        // Libera vaga no slot antigo
+        SlotProvaPratica slotAntigo = slotRepository.findById(agendamento.getSlotId())
+                .orElseThrow(() -> new IllegalStateException("Slot antigo nao encontrado"));
+        slotAntigo.setVagasOcupadas(Math.max(0, slotAntigo.getVagasOcupadas() - 1));
+        slotRepository.save(slotAntigo);
+
+        // Ocupa vaga no novo slot
+        SlotProvaPratica novoSlot = slotRepository.findById(novoSlotId)
+                .orElseThrow(() -> new IllegalArgumentException("Novo slot nao encontrado: " + novoSlotId));
+        if (novoSlot.getVagasOcupadas() >= novoSlot.getVagasTotais()) {
+            throw new IllegalStateException("Novo slot sem vagas disponiveis");
+        }
+        novoSlot.setVagasOcupadas(novoSlot.getVagasOcupadas() + 1);
+        slotRepository.save(novoSlot);
+
+        // Atualiza agendamento
+        agendamento.setSlotId(novoSlotId);
+        AgendamentoProva salvo = agendamentoRepository.save(agendamento);
+        salvo.setSlot(novoSlot);
+        return AgendamentoDTO.Response.from(salvo);
+    }
+
+    @Transactional
     public void cancelar(UUID agendamentoId, UUID alunoId) {
         AgendamentoProva agendamento = agendamentoRepository.findById(agendamentoId)
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento nao encontrado: " + agendamentoId));

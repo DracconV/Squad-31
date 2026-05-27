@@ -58,6 +58,7 @@ func main() {
 	cursoHandler := handlers.NewCursoHandler(conn)
 	inscricaoHandler := handlers.NewInscricaoHandler(conn, producer)
 	statsHandler := handlers.NewStatsHandler(conn)
+	moduloHandler := handlers.NewModuloHandler(conn)
 
 	// ── Router ──────────────────────────────────────────────
 	r := gin.Default()
@@ -88,7 +89,15 @@ func main() {
 		auth.POST("/inscricoes", inscricaoHandler.Inscrever)
 		auth.GET("/inscricoes/minhas", inscricaoHandler.ListarMinhas)
 		auth.PUT("/inscricoes/:id/concluir", inscricaoHandler.Concluir)
+		auth.GET("/inscricoes/:id/progresso", moduloHandler.Progresso)
 		auth.GET("/stats", statsHandler.Get)
+
+		// Módulos
+		auth.GET("/cursos/:id/modulos", moduloHandler.Listar)
+		auth.POST("/cursos/:id/modulos", moduloHandler.Criar)
+		auth.PUT("/modulos/:id", moduloHandler.Atualizar)
+		auth.DELETE("/modulos/:id", moduloHandler.Remover)
+		auth.POST("/modulos/:id/concluir", moduloHandler.Concluir)
 	}
 
 	// ── Servidor com graceful shutdown ──────────────────────

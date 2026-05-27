@@ -87,8 +87,10 @@ func main() {
 	r.GET("/verificar-certificado/:qr", cert.VerificarPublico)
 
 	autenticado := r.Group("/", middleware.JWT())
-	autenticado.GET("/certificados/:aluno/:curso", cert.BuscarPorAlunoCurso)
 	autenticado.GET("/certificados/:aluno/:curso/pdf", cert.DownloadPDF)
+	autenticado.GET("/certificados/:aluno/:curso", cert.BuscarPorAlunoCurso)
+	autenticado.GET("/certificados/:aluno", cert.ListarPorAluno)
+	autenticado.PUT("/certificados/:id/revogar", cert.Revogar)
 
 	port := envDefault("PORT", "8086")
 	srv := &http.Server{Addr: ":" + port, Handler: r}

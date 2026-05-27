@@ -13,4 +13,7 @@ public interface AgendamentoProvaRepository extends JpaRepository<AgendamentoPro
     List<AgendamentoProva> findByAlunoIdWithSlot(@Param("alunoId") UUID alunoId);
 
     boolean existsByAlunoIdAndSlotId(UUID alunoId, UUID slotId);
+
+    @Query("SELECT a FROM AgendamentoProva a JOIN FETCH a.slot ORDER BY a.slot.data ASC")
+    List<AgendamentoProva> findAllWithSlot();
 }

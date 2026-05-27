@@ -30,7 +30,10 @@ public class Questao {
     @Column(name = "tipo_uso", nullable = false, length = 10)
     private String tipoUso;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @Column(name = "nivel_ensino", nullable = false, length = 20)
+    private String nivelEnsino = "MEDIO";
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "disciplina_id", nullable = false)
     private Disciplina disciplina;
 
@@ -40,7 +43,7 @@ public class Questao {
     @Column(nullable = false)
     private boolean ativa = true;
 
-    @OneToMany(mappedBy = "questao", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "questao", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @OrderBy("ordem ASC")
     private List<Alternativa> alternativas;
 
