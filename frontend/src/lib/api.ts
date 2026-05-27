@@ -411,3 +411,64 @@ export async function getAlunosPrimeiroAcesso(): Promise<AlunosPrimeiroAcesso> {
   const { data } = await api.get<AlunosPrimeiroAcesso>('/relatorios/alunos/primeiro-acesso')
   return data
 }
+
+export interface PainelMunicipioItem {
+  municipio: string
+  total_instituicoes: number
+  total_alunos: number
+  total_professores: number
+  media_notas: number
+}
+
+export interface PainelMacro {
+  total_municipios: number
+  municipios: PainelMunicipioItem[]
+  gerado_em: string
+}
+
+export async function getPainelMacro(): Promise<PainelMacro> {
+  const { data } = await api.get<PainelMacro>('/relatorios/seed/painel-macro')
+  return data
+}
+
+/* ── Auth — redefinição de senha ────────────────────────── */
+
+export interface RedefinicaoResponse {
+  token: string
+  expiraEm: string
+  mensagem: string
+}
+
+export async function solicitarRedefinicao(matricula: string): Promise<RedefinicaoResponse> {
+  const { data } = await api.post<RedefinicaoResponse>('/auth/solicitar-redefinicao', { matricula })
+  return data
+}
+
+export async function redefinirSenha(token: string, novaSenha: string): Promise<void> {
+  await api.post('/auth/redefinir-senha', { token, novaSenha })
+}
+
+/* ── Importação CSV ─────────────────────────────────────── */
+
+export interface ImportacaoItem {
+  linha: number
+  matricula: string
+  status: 'ok' | 'erro'
+  mensagem: string
+}
+
+export interface ImportacaoResult {
+  total: number
+  importados: number
+  erros: number
+  detalhes: ImportacaoItem[]
+}
+
+export async function importarAlunos(arquivo: File): Promise<ImportacaoResult> {
+  const formData = new FormData()
+  formData.append('arquivo', arquivo)
+  const { data } = await api.post<ImportacaoResult>('/admin/usuarios/importar-csv', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}

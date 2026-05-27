@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
-import { getResumoRede, getTaxaConclusao, getAlunosPrimeiroAcesso } from '../lib/api'
+import { getResumoRede, getTaxaConclusao, getAlunosPrimeiroAcesso, getPainelMacro } from '../lib/api'
 
 function StatBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -32,6 +32,13 @@ export default function RelatoriosPage() {
   const { data: primeiroAcesso, isLoading: loadingPA } = useQuery({
     queryKey: ['relatorio-primeiro-acesso'],
     queryFn: getAlunosPrimeiroAcesso,
+    enabled: isAdminSeed,
+    retry: false,
+  })
+
+  const { data: painel, isLoading: loadingPainel } = useQuery({
+    queryKey: ['relatorio-painel-macro'],
+    queryFn: getPainelMacro,
     enabled: isAdminSeed,
     retry: false,
   })
@@ -116,6 +123,58 @@ export default function RelatoriosPage() {
           </div>
         )}
       </section>
+
+      {/* Painel macro por município — só ADMIN_SEED */}
+      {isAdminSeed && (
+        <section aria-labelledby="painel-macro-titulo">
+          <h2 id="painel-macro-titulo" className="text-base font-semibold text-gray-700 mb-3">
+            Painel macro por município
+            {painel && (
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                ({painel.total_municipios} municípios)
+              </span>
+            )}
+          </h2>
+          {loadingPainel ? (
+            <div className="space-y-2">
+              {[1,2,3].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
+            </div>
+          ) : !painel || painel.municipios.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+              <p className="text-gray-400 text-sm">Nenhum dado de município disponível.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+              <table className="w-full text-sm" aria-label="Painel de municípios">
+                <thead className="bg-gray-50 text-gray-500 text-left">
+                  <tr>
+                    <th scope="col" className="px-5 py-3 font-medium">Município</th>
+                    <th scope="col" className="px-5 py-3 font-medium">Escolas</th>
+                    <th scope="col" className="px-5 py-3 font-medium">Alunos</th>
+                    <th scope="col" className="px-5 py-3 font-medium">Professores</th>
+                    <th scope="col" className="px-5 py-3 font-medium">Média notas</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {painel.municipios.map((m) => (
+                    <tr key={m.municipio} className="hover:bg-gray-50">
+                      <td className="px-5 py-3 font-medium text-gray-800">{m.municipio}</td>
+                      <td className="px-5 py-3 text-gray-600">{m.total_instituicoes}</td>
+                      <td className="px-5 py-3 text-gray-600">{m.total_alunos}</td>
+                      <td className="px-5 py-3 text-gray-600">{m.total_professores}</td>
+                      <td className="px-5 py-3">
+                        <span className={`font-semibold ${Number(m.media_notas) >= 7 ? 'text-green-600' : Number(m.media_notas) >= 5 ? 'text-amber-600' : 'text-red-500'}`}>
+                          {Number(m.media_notas).toFixed(2)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Alunos aguardando 1º acesso — só ADMIN_SEED */}
       {isAdminSeed && (
