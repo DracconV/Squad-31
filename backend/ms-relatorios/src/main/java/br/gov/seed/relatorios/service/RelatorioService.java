@@ -138,6 +138,41 @@ public class RelatorioService {
         }).toList();
     }
 
+    // ── Painel macro por município ────────────────────────────────────────────
+
+    public RelatorioDTO.PainelMacro painelMacro() {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT " +
+                "  i.municipio, " +
+                "  COUNT(DISTINCT i.id)                                                      AS total_instituicoes, " +
+                "  COUNT(DISTINCT CASE WHEN u.perfil IN ('ALUNO_EM','ALUNO_EJA','ALUNO_PROF')" +
+                "                      AND u.ativo = true THEN u.id END)                     AS total_alunos, " +
+                "  COUNT(DISTINCT CASE WHEN u.perfil = 'PROFESSOR'" +
+                "                      AND u.ativo = true THEN u.id END)                     AS total_professores, " +
+                "  AVG(da.nota_media)                                                        AS media_notas " +
+                "FROM instituicao i " +
+                "LEFT JOIN usuario u   ON u.instituicao_id = i.id " +
+                "LEFT JOIN turma t     ON t.instituicao_id = i.id " +
+                "LEFT JOIN desempenho_aluno da ON da.turma_id = t.id " +
+                "WHERE i.ativo = true " +
+                "GROUP BY i.municipio " +
+                "ORDER BY total_alunos DESC");
+
+        List<RelatorioDTO.PainelMunicipioItem> municipios = rows.stream().map(r -> {
+            String municipio     = (String) r.get("municipio");
+            long totalInst       = ((Number) r.get("total_instituicoes")).longValue();
+            long totalAlunos     = ((Number) r.get("total_alunos")).longValue();
+            long totalProf       = ((Number) r.get("total_professores")).longValue();
+            Object mediaObj      = r.get("media_notas");
+            BigDecimal media     = mediaObj != null
+                    ? BigDecimal.valueOf(((Number) mediaObj).doubleValue()).setScale(2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            return new RelatorioDTO.PainelMunicipioItem(municipio, totalInst, totalAlunos, totalProf, media);
+        }).toList();
+
+        return new RelatorioDTO.PainelMacro(municipios.size(), municipios, LocalDateTime.now());
+    }
+
     // ── Auditoria ─────────────────────────────────────────────────────────────
 
     public RelatorioDTO.RelatorioAuditoria auditoria(int limite) {

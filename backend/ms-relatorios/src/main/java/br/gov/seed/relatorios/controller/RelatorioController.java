@@ -82,4 +82,15 @@ public class RelatorioController {
             @RequestParam(defaultValue = "100") int limite) {
         return ResponseEntity.ok(relatorioService.auditoria(limite));
     }
+
+    @GetMapping("/seed/painel-macro")
+    @PreAuthorize("hasRole('ADMIN_SEED')")
+    @Operation(
+        summary = "Painel macro por município",
+        description = "Agrega escolas, alunos, professores e média de notas de simulados por município. " +
+                      "Exclusivo para ADMIN_SEED."
+    )
+    public ResponseEntity<RelatorioDTO.PainelMacro> painelMacro() {
+        return ResponseEntity.ok(relatorioService.painelMacro());
+    }
 }

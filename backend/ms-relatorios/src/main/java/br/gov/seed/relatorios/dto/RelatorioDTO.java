@@ -59,4 +59,18 @@ public class RelatorioDTO {
             @JsonProperty("total") long total,
             @JsonProperty("registros") List<Map<String, Object>> registros
     ) {}
+
+    public record PainelMunicipioItem(
+            @JsonProperty("municipio") String municipio,
+            @JsonProperty("total_instituicoes") long totalInstituicoes,
+            @JsonProperty("total_alunos") long totalAlunos,
+            @JsonProperty("total_professores") long totalProfessores,
+            @JsonProperty("media_notas") BigDecimal mediaNotas
+    ) {}
+
+    public record PainelMacro(
+            @JsonProperty("total_municipios") long totalMunicipios,
+            @JsonProperty("municipios") List<PainelMunicipioItem> municipios,
+            @JsonProperty("gerado_em") LocalDateTime geradoEm
+    ) {}
 }
