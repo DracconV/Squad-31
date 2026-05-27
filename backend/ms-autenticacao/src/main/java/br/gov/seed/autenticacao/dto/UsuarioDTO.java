@@ -3,6 +3,7 @@ package br.gov.seed.autenticacao.dto;
 import br.gov.seed.autenticacao.entity.Usuario;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,7 +14,7 @@ public class UsuarioDTO {
         @NotBlank String matricula,
         String cpf,
         String email,
-        @NotBlank String senhaTemporaria,
+        @NotBlank @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres") String senhaTemporaria,
         @NotNull Usuario.Perfil perfil,
         UUID instituicaoId
     ) {}
