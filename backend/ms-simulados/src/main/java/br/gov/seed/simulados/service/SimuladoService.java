@@ -240,6 +240,7 @@ public class SimuladoService {
 
     @Transactional
     public SimuladoResponse criar(CriarSimuladoRequest request, UUID professorId) {
+        validarPeriodo(request.dataInicio(), request.dataFim());
         Simulado simulado = new Simulado();
         simulado.setTitulo(request.titulo());
         simulado.setProfessorId(professorId);
@@ -253,6 +254,7 @@ public class SimuladoService {
 
     @Transactional
     public SimuladoResponse atualizar(UUID id, CriarSimuladoRequest request) {
+        validarPeriodo(request.dataInicio(), request.dataFim());
         Simulado simulado = simuladoRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Simulado não encontrado: " + id));
         if (request.titulo() != null && !request.titulo().isBlank()) {
@@ -318,6 +320,13 @@ public class SimuladoService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Garante que dataFim seja posterior a dataInicio quando ambas informadas. */
+    private void validarPeriodo(LocalDateTime dataInicio, LocalDateTime dataFim) {
+        if (dataInicio != null && dataFim != null && dataFim.isBefore(dataInicio)) {
+            throw new IllegalArgumentException("dataFim deve ser posterior a dataInicio");
+        }
+    }
 
     /** Consulta o nome da disciplina de cada questão no DB compartilhado. */
     private Map<UUID, String> buscarDisciplinasPorQuestoes(List<UUID> questaoIds) {
