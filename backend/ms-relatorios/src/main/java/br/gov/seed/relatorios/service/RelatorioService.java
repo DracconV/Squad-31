@@ -30,13 +30,14 @@ public class RelatorioService {
         long totalAlunos       = count("SELECT COUNT(*) FROM usuario WHERE perfil IN ('ALUNO_EM','ALUNO_EJA','ALUNO_PROF') AND ativo = true");
         long totalProfessores  = count("SELECT COUNT(*) FROM usuario WHERE perfil = 'PROFESSOR' AND ativo = true");
 
-        BigDecimal mediaGeral = desempenhoAlunoRepo.findAll().stream()
+        // Considera apenas registros com nota preenchida — divisor = nº de notas não-nulas
+        List<BigDecimal> notas = desempenhoAlunoRepo.findAll().stream()
                 .map(d -> d.getNotaMedia())
                 .filter(n -> n != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long totalRegistros = desempenhoAlunoRepo.count();
-        BigDecimal mediaGeralNota = totalRegistros > 0
-                ? mediaGeral.divide(BigDecimal.valueOf(totalRegistros), 2, RoundingMode.HALF_UP)
+                .toList();
+        BigDecimal somaNotas = notas.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal mediaGeralNota = !notas.isEmpty()
+                ? somaNotas.divide(BigDecimal.valueOf(notas.size()), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         return new RelatorioDTO.ResumoRede(
