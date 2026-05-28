@@ -21,6 +21,10 @@ public class Questao {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String enunciado;
 
+    /** Explicação/comentário do gabarito — feedback pós-simulado. Opcional. */
+    @Column(columnDefinition = "TEXT")
+    private String explicacao;
+
     @Column(nullable = false, length = 20)
     private String tipo;
 

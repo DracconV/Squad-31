@@ -8,8 +8,10 @@ import br.gov.seed.questoes.entity.Alternativa;
 import br.gov.seed.questoes.entity.Assunto;
 import br.gov.seed.questoes.entity.Disciplina;
 import br.gov.seed.questoes.entity.Questao;
+import br.gov.seed.questoes.entity.QuestaoFavorita;
 import br.gov.seed.questoes.repository.AssuntoRepository;
 import br.gov.seed.questoes.repository.DisciplinaRepository;
+import br.gov.seed.questoes.repository.QuestaoFavoritaRepository;
 import br.gov.seed.questoes.repository.QuestaoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class QuestaoService {
     private final QuestaoRepository questaoRepository;
     private final DisciplinaRepository disciplinaRepository;
     private final AssuntoRepository assuntoRepository;
+    private final QuestaoFavoritaRepository favoritaRepository;
 
     // Quais níveis cada modalidade de turma pode acessar
     private static final Map<String, List<String>> NIVEIS_POR_MODALIDADE = Map.of(
@@ -79,6 +82,7 @@ public class QuestaoService {
                 .dificuldade(request.dificuldade())
                 .tipoUso(request.tipoUso())
                 .nivelEnsino(request.nivelEnsino())
+                .explicacao(request.explicacao())
                 .disciplina(disciplina)
                 .criadoPor(professorId)
                 .ativa(true)
@@ -120,6 +124,9 @@ public class QuestaoService {
         }
         if (request.nivelEnsino() != null && !request.nivelEnsino().isBlank()) {
             questao.setNivelEnsino(request.nivelEnsino());
+        }
+        if (request.explicacao() != null) {
+            questao.setExplicacao(request.explicacao());
         }
         if (request.disciplinaId() != null) {
             Disciplina disciplina = disciplinaRepository.findById(request.disciplinaId())
@@ -186,6 +193,38 @@ public class QuestaoService {
                 .disciplina(disciplina)
                 .build();
         return AssuntoDto.from(assuntoRepository.save(assunto));
+    }
+
+    // ── Favoritas / marcadas para revisão ─────────────────────────────────────
+
+    @Transactional
+    public void favoritar(UUID alunoId, UUID questaoId) {
+        if (!questaoRepository.existsById(questaoId)) {
+            throw new RuntimeException("Questão não encontrada: " + questaoId);
+        }
+        if (!favoritaRepository.existsByAlunoIdAndQuestaoId(alunoId, questaoId)) {
+            favoritaRepository.save(QuestaoFavorita.builder()
+                    .alunoId(alunoId)
+                    .questaoId(questaoId)
+                    .build());
+        }
+    }
+
+    @Transactional
+    public void desfavoritar(UUID alunoId, UUID questaoId) {
+        favoritaRepository.deleteByAlunoIdAndQuestaoId(alunoId, questaoId);
+    }
+
+    /** Lista as questões marcadas para revisão pelo aluno (com gabarito, pois é estudo dirigido). */
+    public List<QuestaoResponse> listarFavoritas(UUID alunoId) {
+        List<UUID> ids = favoritaRepository.findByAlunoIdOrderByCriadoEmDesc(alunoId).stream()
+                .map(QuestaoFavorita::getQuestaoId)
+                .toList();
+        if (ids.isEmpty()) return List.of();
+        return questaoRepository.findAllById(ids).stream()
+                .filter(Questao::isAtiva)
+                .map(q -> QuestaoResponse.from(q, true))
+                .collect(Collectors.toList());
     }
 
     public List<DisciplinaDto> listarDisciplinas() {
