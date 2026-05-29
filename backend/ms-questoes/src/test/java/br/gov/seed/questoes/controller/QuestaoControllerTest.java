@@ -81,6 +81,7 @@ class QuestaoControllerTest {
                 "AMBOS",
                 "MEDIO",
                 "Matemática",
+                "2 + 2 = 4",
                 List.of(new AlternativaDto(UUID.randomUUID(), "4", true, 1))
         );
     }
