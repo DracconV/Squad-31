@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api, favoritarQuestao, desfavoritarQuestao, listarQuestoesFavoritas } from '../lib/api'
+import { api, favoritarQuestao, desfavoritarQuestao, listarQuestoesFavoritas, getGabaritoQuestao, type Gabarito } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
 /* ── Renderizador de Markdown simples ───────────────────────── */
@@ -312,7 +312,6 @@ export default function BancoQuestoesPage() {
             numero={page * size + idx + 1}
             expandida={expandida === q.id}
             onToggle={() => setExpandida(expandida === q.id ? null : q.id)}
-            isAdmin={isAdmin}
             favorita={favoritas.has(q.id)}
             onToggleFavorito={() => toggleFavorito(q.id)}
           />
@@ -352,7 +351,6 @@ function QuestaoCard({
   numero,
   expandida,
   onToggle,
-  isAdmin,
   favorita,
   onToggleFavorito,
 }: {
@@ -360,7 +358,6 @@ function QuestaoCard({
   numero: number
   expandida: boolean
   onToggle: () => void
-  isAdmin: boolean
   favorita: boolean
   onToggleFavorito: () => void
 }) {
@@ -371,6 +368,30 @@ function QuestaoCard({
   }[questao.dificuldade] ?? 'bg-gray-100 text-gray-600'
 
   const letras = ['A', 'B', 'C', 'D', 'E']
+
+  // Modo praticar (todos os perfis): seleciona uma alternativa e clica em "Verificar".
+  // Se o gabarito já veio no listing (professor/admin), verifica localmente; senão busca no backend.
+  const corretaLocalId = questao.alternativas?.find((a) => a.correta === true)?.id ?? null
+  const [selecionada, setSelecionada] = useState<string | null>(null)
+  const [gabarito, setGabarito] = useState<Gabarito | null>(null)
+  const [verificando, setVerificando] = useState(false)
+
+  async function verificar() {
+    if (!selecionada || gabarito) return
+    if (corretaLocalId) {
+      // Professor/admin já têm o gabarito nos dados — sem ida ao backend
+      setGabarito({ questaoId: questao.id, alternativaCorretaId: corretaLocalId, explicacao: questao.explicacao ?? null })
+      return
+    }
+    setVerificando(true)
+    try {
+      setGabarito(await getGabaritoQuestao(questao.id))
+    } catch {
+      /* ignora — usuário pode tentar de novo */
+    } finally {
+      setVerificando(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -419,37 +440,62 @@ function QuestaoCard({
             <MarkdownText text={questao.enunciado} />
           </div>
 
+          {/* ── Modo praticar (todos): selecionar e verificar ───────── */}
           {questao.alternativas && questao.alternativas.length > 0 && (
             <div className="space-y-2 mt-3">
-              {questao.alternativas
-                .sort((a, b) => a.ordem - b.ordem)
-                .map((alt, i) => (
-                  <div
+              {[...questao.alternativas].sort((a, b) => a.ordem - b.ordem).map((alt, i) => {
+                const isCorreta = gabarito?.alternativaCorretaId === alt.id
+                const isSelecionada = selecionada === alt.id
+                const isSelecionadaErrada = gabarito != null && isSelecionada && !isCorreta
+                let cor = 'bg-gray-50 border-gray-100 hover:border-blue-300'
+                if (gabarito) {
+                  if (isCorreta) cor = 'bg-green-50 border-green-300'
+                  else if (isSelecionadaErrada) cor = 'bg-red-50 border-red-300'
+                } else if (isSelecionada) {
+                  cor = 'bg-blue-50 border-blue-400 ring-1 ring-blue-300'
+                }
+                return (
+                  <button
                     key={alt.id}
-                    className={`flex gap-2 p-2.5 rounded-lg text-sm ${
-                      isAdmin && alt.correta
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-gray-50 border border-gray-100'
-                    }`}
+                    type="button"
+                    disabled={gabarito != null}
+                    onClick={() => setSelecionada(alt.id)}
+                    className={`w-full text-left flex gap-2 p-2.5 rounded-lg text-sm border transition disabled:cursor-default ${cor}`}
                   >
                     <span className={`font-bold min-w-[1.2rem] ${
-                      isAdmin && alt.correta ? 'text-green-600' : 'text-gray-400'
+                      isCorreta ? 'text-green-600' : isSelecionadaErrada ? 'text-red-500' : isSelecionada ? 'text-blue-600' : 'text-gray-400'
                     }`}>
                       {letras[i] ?? alt.ordem})
                     </span>
                     <span className="text-gray-700">{alt.texto}</span>
-                    {isAdmin && alt.correta && (
-                      <span className="ml-auto text-green-600 font-medium text-xs">✓ Correta</span>
-                    )}
-                  </div>
-                ))}
+                    {gabarito && isCorreta && <span className="ml-auto text-green-600 font-medium text-xs">✓ Correta</span>}
+                    {isSelecionadaErrada && <span className="ml-auto text-red-500 font-medium text-xs">Sua resposta</span>}
+                  </button>
+                )
+              })}
+
+              {!gabarito ? (
+                <button
+                  type="button"
+                  onClick={verificar}
+                  disabled={!selecionada || verificando}
+                  className="mt-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {verificando ? 'Verificando…' : 'Verificar resposta'}
+                </button>
+              ) : (
+                <p className={`text-sm font-medium ${gabarito.alternativaCorretaId === selecionada ? 'text-green-600' : 'text-red-500'}`}>
+                  {gabarito.alternativaCorretaId === selecionada ? '✓ Você acertou!' : '✗ Resposta incorreta.'}
+                </p>
+              )}
             </div>
           )}
 
-          {questao.explicacao && (
+          {/* Explicação: vem da questão (professor) ou do gabarito revelado (aluno) */}
+          {(questao.explicacao || gabarito?.explicacao) && (
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-900 mt-3">
               <span className="font-semibold">💡 Explicação: </span>
-              <span className="whitespace-pre-wrap">{questao.explicacao}</span>
+              <span className="whitespace-pre-wrap">{questao.explicacao ?? gabarito?.explicacao}</span>
             </div>
           )}
         </div>

@@ -499,6 +499,17 @@ export async function getQuestao(id: string): Promise<Questao> {
   return data
 }
 
+export interface Gabarito {
+  questaoId: string
+  alternativaCorretaId: string | null
+  explicacao: string | null
+}
+
+export async function getGabaritoQuestao(id: string): Promise<Gabarito> {
+  const { data } = await api.get<Gabarito>(`/questoes/${id}/gabarito`)
+  return data
+}
+
 export async function listarQuestoesFavoritas(): Promise<Questao[]> {
   const { data } = await api.get<Questao[]>('/questoes/favoritas')
   return data
