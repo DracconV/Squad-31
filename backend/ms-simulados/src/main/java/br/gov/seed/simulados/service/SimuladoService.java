@@ -374,8 +374,10 @@ public class SimuladoService {
         jdbcTemplate.query(
                 "SELECT id, enunciado, explicacao FROM questao WHERE id IN (" + placeholders + ")",
                 params,
-                rs -> questaoInfo.put(UUID.fromString(rs.getString("id")),
-                        new String[]{rs.getString("enunciado"), rs.getString("explicacao")}));
+                rs -> {
+                    questaoInfo.put(UUID.fromString(rs.getString("id")),
+                            new String[]{rs.getString("enunciado"), rs.getString("explicacao")});
+                });
 
         // questaoId → alternativas ordenadas
         Map<UUID, List<RevisaoResponse.Alternativa>> altsPorQuestao = new HashMap<>();
