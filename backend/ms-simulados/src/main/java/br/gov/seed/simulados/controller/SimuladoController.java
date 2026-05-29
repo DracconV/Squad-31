@@ -2,6 +2,7 @@ package br.gov.seed.simulados.controller;
 
 import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
+import br.gov.seed.simulados.dto.RevisaoResponse;
 import br.gov.seed.simulados.dto.SimuladoResponse;
 import br.gov.seed.simulados.dto.TentativaResponse;
 import br.gov.seed.simulados.model.SessaoSimulado;
@@ -366,6 +367,26 @@ public class SimuladoController {
         }
     }
 
+    // ── Revisão (gabarito comentado) ──────────────────────────────────────────
+
+    @Operation(
+        summary = "Revisão comentada do simulado",
+        description = "Retorna cada questão com alternativas, gabarito e explicação. " +
+                      "Alunos só acessam após finalizar uma tentativa; professor/admin sempre."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Revisão retornada"),
+        @ApiResponse(responseCode = "409", description = "Aluno ainda não finalizou o simulado", content = @Content)
+    })
+    @GetMapping("/{id}/revisao")
+    public ResponseEntity<List<RevisaoResponse>> revisao(
+            @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            HttpServletRequest request) {
+        UUID alunoId = extrairAlunoId(request);
+        boolean privilegiado = ehProfessorOuAdmin(request);
+        return ResponseEntity.ok(simuladoService.revisao(id, alunoId, privilegiado));
+    }
+
     // ── Gabarito ─────────────────────────────────────────────────────────────
 
     @Operation(
@@ -391,5 +412,13 @@ public class SimuladoController {
             throw new IllegalStateException("Atributo userID ausente — JWT inválido ou filtro não executado");
         }
         return UUID.fromString(attr.toString());
+    }
+
+    /** Retorna true se o chamador tem perfil de PROFESSOR, ADMIN_ESCOLA ou ADMIN_SEED. */
+    private boolean ehProfessorOuAdmin(HttpServletRequest request) {
+        Object perfil = request.getAttribute("perfil");
+        if (perfil == null) return false;
+        String p = perfil.toString();
+        return p.equals("PROFESSOR") || p.equals("ADMIN_ESCOLA") || p.equals("ADMIN_SEED");
     }
 }

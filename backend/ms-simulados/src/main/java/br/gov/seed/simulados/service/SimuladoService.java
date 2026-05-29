@@ -2,6 +2,7 @@ package br.gov.seed.simulados.service;
 
 import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
+import br.gov.seed.simulados.dto.RevisaoResponse;
 import br.gov.seed.simulados.dto.SimuladoResponse;
 import br.gov.seed.simulados.dto.TentativaResponse;
 import br.gov.seed.simulados.model.*;
@@ -338,6 +339,67 @@ public class SimuladoService {
         jdbcTemplate.query(sql, params, rs -> {
             resultado.put(UUID.fromString(rs.getString(1)), rs.getString(2));
         });
+        return resultado;
+    }
+
+    // ── Revisão (gabarito comentado pós-simulado) ─────────────────────────────
+
+    /**
+     * Retorna cada questão do simulado com alternativas, gabarito e explicação.
+     * Alunos só acessam após terem uma tentativa finalizada; professor/admin sempre.
+     */
+    public List<RevisaoResponse> revisao(UUID simuladoId, UUID alunoId, boolean privilegiado) {
+        List<SimuladoQuestao> questoes = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(simuladoId);
+        if (questoes.isEmpty() && !simuladoRepo.existsById(simuladoId)) {
+            throw new RuntimeException("Simulado não encontrado: " + simuladoId);
+        }
+        if (!privilegiado) {
+            boolean finalizou = tentativaRepo
+                    .findTopByAlunoIdAndSimuladoIdOrderByIniciadoEmDesc(alunoId, simuladoId)
+                    .map(t -> t.getFinalizadoEm() != null)
+                    .orElse(false);
+            if (!finalizou) {
+                throw new IllegalStateException("Revisão disponível apenas após finalizar o simulado");
+            }
+        }
+
+        List<UUID> questaoIds = questoes.stream().map(sq -> sq.getId().getQuestaoId()).toList();
+        if (questaoIds.isEmpty()) return List.of();
+
+        String placeholders = questaoIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        Object[] params = questaoIds.stream().map(UUID::toString).toArray();
+
+        // questaoId → [enunciado, explicacao]
+        Map<UUID, String[]> questaoInfo = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT id, enunciado, explicacao FROM questao WHERE id IN (" + placeholders + ")",
+                params,
+                rs -> questaoInfo.put(UUID.fromString(rs.getString("id")),
+                        new String[]{rs.getString("enunciado"), rs.getString("explicacao")}));
+
+        // questaoId → alternativas ordenadas
+        Map<UUID, List<RevisaoResponse.Alternativa>> altsPorQuestao = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT id, questao_id, texto, correta, ordem FROM alternativa WHERE questao_id IN (" + placeholders + ") ORDER BY ordem",
+                params,
+                rs -> {
+                    UUID qid = UUID.fromString(rs.getString("questao_id"));
+                    altsPorQuestao.computeIfAbsent(qid, k -> new ArrayList<>())
+                            .add(new RevisaoResponse.Alternativa(
+                                    UUID.fromString(rs.getString("id")),
+                                    rs.getString("texto"),
+                                    rs.getBoolean("correta"),
+                                    rs.getInt("ordem")));
+                });
+
+        List<RevisaoResponse> resultado = new ArrayList<>();
+        for (SimuladoQuestao sq : questoes) {
+            UUID qid = sq.getId().getQuestaoId();
+            String[] info = questaoInfo.getOrDefault(qid, new String[]{null, null});
+            resultado.add(new RevisaoResponse(
+                    sq.getOrdem(), qid, info[0], info[1],
+                    altsPorQuestao.getOrDefault(qid, List.of())));
+        }
         return resultado;
     }
 
