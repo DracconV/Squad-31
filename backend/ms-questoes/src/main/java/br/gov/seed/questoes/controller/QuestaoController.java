@@ -134,6 +134,16 @@ public class QuestaoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+        summary = "Revela a alternativa correta de uma questão (modo praticar)",
+        description = "Retorna o id da alternativa correta e a explicação. Disponível a qualquer usuário autenticado.",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @GetMapping("/questoes/{id}/gabarito")
+    public ResponseEntity<br.gov.seed.questoes.dto.GabaritoResponse> gabarito(@PathVariable UUID id) {
+        return ResponseEntity.ok(questaoService.gabarito(id));
+    }
+
     // ── Favoritas / marcadas para revisão ─────────────────────────────────────
 
     @Operation(

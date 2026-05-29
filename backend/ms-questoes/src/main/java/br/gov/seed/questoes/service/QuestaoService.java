@@ -66,6 +66,20 @@ public class QuestaoService {
         return QuestaoResponse.from(q, incluirGabarito);
     }
 
+    /** Revela a alternativa correta + explicação de uma questão (modo praticar). */
+    public br.gov.seed.questoes.dto.GabaritoResponse gabarito(UUID id) {
+        Questao q = questaoRepository.findById(id)
+                .filter(Questao::isAtiva)
+                .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
+        UUID correta = q.getAlternativas() == null ? null :
+                q.getAlternativas().stream()
+                        .filter(Alternativa::isCorreta)
+                        .map(Alternativa::getId)
+                        .findFirst()
+                        .orElse(null);
+        return new br.gov.seed.questoes.dto.GabaritoResponse(q.getId(), correta, q.getExplicacao());
+    }
+
     @Transactional
     public QuestaoResponse criar(CriarQuestaoRequest request, UUID professorId) {
         Disciplina disciplina = disciplinaRepository.findById(request.disciplinaId())
