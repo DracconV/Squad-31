@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../lib/api'
+import { api, favoritarQuestao, desfavoritarQuestao, listarQuestoesFavoritas } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
 /* ── Renderizador de Markdown simples ───────────────────────── */
@@ -78,6 +78,7 @@ interface Questao {
   dificuldade: string
   tipoUso: string
   disciplina: string
+  explicacao?: string | null
   alternativas: Alternativa[]
 }
 
@@ -121,6 +122,7 @@ export default function BancoQuestoesPage() {
   const [expandida, setExpandida] = useState<string | null>(null)
   const [importando, setImportando] = useState(false)
   const [importMsg, setImportMsg] = useState('')
+  const [favoritas, setFavoritas] = useState<Set<string>>(new Set())
 
   const size = 20
 
@@ -128,6 +130,39 @@ export default function BancoQuestoesPage() {
     queryKey: ['disciplinas'],
     queryFn: fetchDisciplinas,
   })
+
+  // Conjunto de IDs marcados para revisão pelo aluno
+  useQuery({
+    queryKey: ['questoes-favoritas-ids'],
+    queryFn: async () => {
+      const favs = await listarQuestoesFavoritas()
+      setFavoritas(new Set(favs.map((f) => f.id)))
+      return favs
+    },
+  })
+
+  async function toggleFavorito(questaoId: string) {
+    const jaFavorita = favoritas.has(questaoId)
+    // Atualização otimista
+    setFavoritas((prev) => {
+      const next = new Set(prev)
+      if (jaFavorita) next.delete(questaoId)
+      else next.add(questaoId)
+      return next
+    })
+    try {
+      if (jaFavorita) await desfavoritarQuestao(questaoId)
+      else await favoritarQuestao(questaoId)
+    } catch {
+      // Reverte em caso de falha
+      setFavoritas((prev) => {
+        const next = new Set(prev)
+        if (jaFavorita) next.add(questaoId)
+        else next.delete(questaoId)
+        return next
+      })
+    }
+  }
 
   const { data: stats } = useQuery({
     queryKey: ['questoes-stats'],
@@ -278,6 +313,8 @@ export default function BancoQuestoesPage() {
             expandida={expandida === q.id}
             onToggle={() => setExpandida(expandida === q.id ? null : q.id)}
             isAdmin={isAdmin}
+            favorita={favoritas.has(q.id)}
+            onToggleFavorito={() => toggleFavorito(q.id)}
           />
         ))}
       </div>
@@ -316,12 +353,16 @@ function QuestaoCard({
   expandida,
   onToggle,
   isAdmin,
+  favorita,
+  onToggleFavorito,
 }: {
   questao: Questao
   numero: number
   expandida: boolean
   onToggle: () => void
   isAdmin: boolean
+  favorita: boolean
+  onToggleFavorito: () => void
 }) {
   const dificuldadeCor = {
     FACIL: 'bg-green-100 text-green-700',
@@ -333,32 +374,43 @@ function QuestaoCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Header clicável */}
-      <button
-        onClick={onToggle}
-        className="w-full text-left p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors"
-      >
-        <span className="text-xs font-bold text-gray-400 mt-0.5 min-w-[2rem]">
-          #{numero}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-800 line-clamp-2 overflow-hidden">{questao.enunciado.replace(/!\[[^\]]*\]\([^)]+\)/g, '[imagem]')}</p>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {questao.disciplina && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                {questao.disciplina}
+      {/* Header clicável + botão de favoritar */}
+      <div className="flex items-start">
+        <button
+          onClick={onToggle}
+          className="flex-1 text-left p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors min-w-0"
+        >
+          <span className="text-xs font-bold text-gray-400 mt-0.5 min-w-[2rem]">
+            #{numero}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-800 line-clamp-2 overflow-hidden">{questao.enunciado.replace(/!\[[^\]]*\]\([^)]+\)/g, '[imagem]')}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {questao.disciplina && (
+                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
+                  {questao.disciplina}
+                </span>
+              )}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dificuldadeCor}`}>
+                {questao.dificuldade}
               </span>
-            )}
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dificuldadeCor}`}>
-              {questao.dificuldade}
-            </span>
-            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-              {questao.tipoUso}
-            </span>
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                {questao.tipoUso}
+              </span>
+            </div>
           </div>
-        </div>
-        <span className="text-gray-400 text-xs mt-0.5">{expandida ? '▲' : '▼'}</span>
-      </button>
+          <span className="text-gray-400 text-xs mt-0.5">{expandida ? '▲' : '▼'}</span>
+        </button>
+        <button
+          onClick={onToggleFavorito}
+          aria-label={favorita ? 'Remover dos favoritos' : 'Marcar para revisão'}
+          aria-pressed={favorita}
+          title={favorita ? 'Remover da revisão' : 'Marcar para revisão'}
+          className={`shrink-0 p-4 text-xl transition-colors ${favorita ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+        >
+          {favorita ? '★' : '☆'}
+        </button>
+      </div>
 
       {/* Conteúdo expandido */}
       {expandida && (
@@ -391,6 +443,13 @@ function QuestaoCard({
                     )}
                   </div>
                 ))}
+            </div>
+          )}
+
+          {questao.explicacao && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-900 mt-3">
+              <span className="font-semibold">💡 Explicação: </span>
+              <span className="whitespace-pre-wrap">{questao.explicacao}</span>
             </div>
           )}
         </div>
