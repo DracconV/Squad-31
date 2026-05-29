@@ -472,3 +472,137 @@ export async function importarAlunos(arquivo: File): Promise<ImportacaoResult> {
   })
   return data
 }
+
+/* ── Questões (detalhe + favoritas) ─────────────────────── */
+
+export interface AlternativaQuestao {
+  id: string
+  texto: string
+  correta: boolean | null
+  ordem: number
+}
+
+export interface Questao {
+  id: string
+  enunciado: string
+  tipo: string
+  dificuldade: string
+  tipoUso: string
+  nivelEnsino?: string
+  disciplina: string
+  explicacao?: string | null
+  alternativas: AlternativaQuestao[]
+}
+
+export async function getQuestao(id: string): Promise<Questao> {
+  const { data } = await api.get<Questao>(`/questoes/${id}`)
+  return data
+}
+
+export interface Gabarito {
+  questaoId: string
+  alternativaCorretaId: string | null
+  explicacao: string | null
+}
+
+export async function getGabaritoQuestao(id: string): Promise<Gabarito> {
+  const { data } = await api.get<Gabarito>(`/questoes/${id}/gabarito`)
+  return data
+}
+
+export async function listarQuestoesFavoritas(): Promise<Questao[]> {
+  const { data } = await api.get<Questao[]>('/questoes/favoritas')
+  return data
+}
+
+export async function favoritarQuestao(id: string): Promise<void> {
+  await api.post(`/questoes/${id}/favoritar`)
+}
+
+export async function desfavoritarQuestao(id: string): Promise<void> {
+  await api.delete(`/questoes/${id}/favoritar`)
+}
+
+/* ── Sessão de simulado (execução) ──────────────────────── */
+
+export interface SessaoSimulado {
+  simuladoId: string
+  alunoId: string
+  iniciadoEm: string
+  questaoAtual: number
+  respostas: Record<number, string>
+}
+
+export async function iniciarSimulado(id: string): Promise<SessaoSimulado> {
+  const { data } = await api.post<SessaoSimulado>(`/simulados/${id}/iniciar`)
+  return data
+}
+
+export async function getSessaoSimulado(id: string): Promise<SessaoSimulado | null> {
+  try {
+    const { data } = await api.get<SessaoSimulado>(`/simulados/${id}/sessao`)
+    return data
+  } catch {
+    return null
+  }
+}
+
+export async function responderSimulado(
+  id: string,
+  questaoIndex: number,
+  alternativaId: string,
+): Promise<void> {
+  await api.put(`/simulados/${id}/responder`, {
+    questaoIndex: String(questaoIndex),
+    alternativaId,
+  })
+}
+
+export async function finalizarSimulado(id: string): Promise<ResultadoSimulado> {
+  const { data } = await api.post<ResultadoSimulado>(`/simulados/${id}/finalizar`)
+  return data
+}
+
+/* ── Revisão comentada (gabarito pós-simulado) ──────────── */
+
+export interface RevisaoAlternativa {
+  id: string
+  texto: string
+  correta: boolean
+  ordem: number
+}
+
+export interface RevisaoQuestao {
+  ordem: number
+  questaoId: string
+  enunciado: string
+  explicacao: string | null
+  alternativas: RevisaoAlternativa[]
+}
+
+export async function revisaoSimulado(id: string): Promise<RevisaoQuestao[]> {
+  const { data } = await api.get<RevisaoQuestao[]>(`/simulados/${id}/revisao`)
+  return data
+}
+
+/* ── Exportação de relatórios (CSV) ─────────────────────── */
+
+async function baixarCsv(url: string, nomeArquivo: string): Promise<void> {
+  const resp = await api.get(url, { responseType: 'blob' })
+  const blobUrl = window.URL.createObjectURL(resp.data as Blob)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = nomeArquivo
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(blobUrl)
+}
+
+export function exportarPainelMacroCsv(): Promise<void> {
+  return baixarCsv('/relatorios/seed/painel-macro/export', 'painel-macro.csv')
+}
+
+export function exportarTaxaConclusaoCsv(): Promise<void> {
+  return baixarCsv('/relatorios/cursos/taxa-conclusao/export', 'taxa-conclusao.csv')
+}

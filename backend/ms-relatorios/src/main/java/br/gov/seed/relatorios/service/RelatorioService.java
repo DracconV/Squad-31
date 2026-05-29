@@ -30,13 +30,10 @@ public class RelatorioService {
         long totalAlunos       = count("SELECT COUNT(*) FROM usuario WHERE perfil IN ('ALUNO_EM','ALUNO_EJA','ALUNO_PROF') AND ativo = true");
         long totalProfessores  = count("SELECT COUNT(*) FROM usuario WHERE perfil = 'PROFESSOR' AND ativo = true");
 
-        BigDecimal mediaGeral = desempenhoAlunoRepo.findAll().stream()
-                .map(d -> d.getNotaMedia())
-                .filter(n -> n != null)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        long totalRegistros = desempenhoAlunoRepo.count();
-        BigDecimal mediaGeralNota = totalRegistros > 0
-                ? mediaGeral.divide(BigDecimal.valueOf(totalRegistros), 2, RoundingMode.HALF_UP)
+        // AVG no banco — evita carregar toda a tabela desempenho_aluno em memória
+        Double mediaDouble = desempenhoAlunoRepo.findMediaGeral();
+        BigDecimal mediaGeralNota = mediaDouble != null
+                ? BigDecimal.valueOf(mediaDouble).setScale(2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         return new RelatorioDTO.ResumoRede(

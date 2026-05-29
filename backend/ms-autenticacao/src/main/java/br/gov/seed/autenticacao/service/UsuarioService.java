@@ -68,8 +68,7 @@ public class UsuarioService {
     }
 
     public List<UsuarioDTO.Response> listarPorInstituicao(UUID instituicaoId) {
-        return usuarioRepository.findAll().stream()
-                .filter(u -> u.getInstituicao() != null && u.getInstituicao().getId().equals(instituicaoId))
+        return usuarioRepository.findByInstituicao_Id(instituicaoId).stream()
                 .map(UsuarioDTO.Response::from)
                 .toList();
     }

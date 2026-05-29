@@ -14,6 +14,7 @@ public record QuestaoResponse(
         String tipoUso,
         String nivelEnsino,
         String disciplina,
+        String explicacao,
         List<AlternativaDto> alternativas
 ) {
     /** Para uso por alunos — gabarito oculto (correta = null). */
@@ -42,6 +43,8 @@ public record QuestaoResponse(
                 q.getTipoUso(),
                 q.getNivelEnsino(),
                 q.getDisciplina() != null ? q.getDisciplina().getNome() : null,
+                // Explicação revela o gabarito → só exposta a professor/admin (durante prova fica oculta)
+                incluirGabarito ? q.getExplicacao() : null,
                 alts
         );
     }

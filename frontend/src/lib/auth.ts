@@ -57,7 +57,14 @@ export function decodeJwt(token: string): JwtPayload | null {
     const parts = token.split('.')
     if (parts.length !== 3) return null
     const payload = parts[1]
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    // Decodifica base64url respeitando UTF-8 (nomes acentuados: José, João, Conceição)
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    )
     return JSON.parse(json) as JwtPayload
   } catch {
     return null

@@ -188,6 +188,12 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      OTEL_SERVICE_NAME: ms-autenticacao
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     ports:
       - "8081:8081"
     networks:
@@ -288,6 +294,12 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       ENEM_AUTO_IMPORT: "true"
+      OTEL_SERVICE_NAME: ms-questoes
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     ports:
       - "8087:8087"
     networks:
@@ -325,6 +337,12 @@ services:
       KAFKA_BROKER: kafka:29092
       JWT_SECRET: ${JWT_SECRET}
       SERVER_PORT: 8088
+      OTEL_SERVICE_NAME: ms-simulados
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     ports:
       - "8088:8088"
     networks:
@@ -358,6 +376,12 @@ services:
       KAFKA_BROKERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET}
       SERVER_PORT: 8089
+      OTEL_SERVICE_NAME: ms-relatorios
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     ports:
       - "8089:8089"
     networks:
@@ -390,6 +414,12 @@ services:
       MS_SIMULADOS_URL: http://ms-simulados:8088
       MS_RELATORIOS_URL: http://ms-relatorios:8089
       JWT_SECRET: ${JWT_SECRET}
+      OTEL_SERVICE_NAME: api-gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
     ports:
       - "8080:8080"
     networks:

@@ -24,6 +24,9 @@ public interface DesempenhoAlunoRepository extends JpaRepository<DesempenhoAluno
 
     List<DesempenhoAluno> findByTurmaIdAndDisciplina(UUID turmaId, String disciplina);
 
+    @Query("SELECT AVG(d.notaMedia) FROM DesempenhoAluno d WHERE d.notaMedia IS NOT NULL")
+    Double findMediaGeral();
+
     @Query("SELECT AVG(d.notaMedia) FROM DesempenhoAluno d WHERE d.turmaId = :turmaId")
     Double findMediaTurma(UUID turmaId);
 
