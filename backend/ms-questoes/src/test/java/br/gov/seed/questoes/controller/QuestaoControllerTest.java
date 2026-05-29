@@ -5,6 +5,7 @@ import br.gov.seed.questoes.config.SecurityConfig;
 import br.gov.seed.questoes.dto.AlternativaDto;
 import br.gov.seed.questoes.dto.DisciplinaDto;
 import br.gov.seed.questoes.dto.QuestaoResponse;
+import br.gov.seed.questoes.service.DificuldadeService;
 import br.gov.seed.questoes.service.EnemImporterService;
 import br.gov.seed.questoes.service.QuestaoService;
 import io.jsonwebtoken.Jwts;
@@ -57,6 +58,9 @@ class QuestaoControllerTest {
 
     @MockitoBean
     private EnemImporterService enemImporterService;
+
+    @MockitoBean
+    private DificuldadeService dificuldadeService;
 
     // ── Helpers ───────────────────────────────────────────────
 
