@@ -72,6 +72,18 @@ spring:
               predicates:
                 - Path=/relatorios/**,/diagnostico/**
 
+            - id: ms-notificacoes
+              uri: ${MS_NOTIFICACOES_URL:http://localhost:8091}
+              predicates:
+                - Path=/notificacoes/**
+
+            - id: ms-notificacoes-api
+              uri: ${MS_NOTIFICACOES_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/notificacoes/**
+              filters:
+                - StripPrefix=1
+
 server:
   port: 8080
 
