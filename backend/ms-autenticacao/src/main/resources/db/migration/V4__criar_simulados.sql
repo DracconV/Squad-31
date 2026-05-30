@@ -1,4 +1,4 @@
--- Simulados criados por professores
+                                                                                                                                                                                                                        -- Simulados criados por professores
 CREATE TABLE simulado (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     titulo        VARCHAR(255) NOT NULL,
