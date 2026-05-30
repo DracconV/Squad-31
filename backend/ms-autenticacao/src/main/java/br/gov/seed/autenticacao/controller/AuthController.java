@@ -1,5 +1,6 @@
 package br.gov.seed.autenticacao.controller;
 
+import br.gov.seed.autenticacao.dto.AuthDTO;
 import br.gov.seed.autenticacao.dto.AuthDTO.*;
 import br.gov.seed.autenticacao.service.AuthService;
 import jakarta.validation.Valid;
@@ -28,5 +29,20 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<String> me() {
         return ResponseEntity.ok("autenticado");
+    }
+
+    /** Gera token de redefinição de senha (pública — uso pelo admin ou integração). */
+    @PostMapping("/solicitar-redefinicao")
+    public ResponseEntity<AuthDTO.RedefinicaoResponse> solicitarRedefinicao(
+            @Valid @RequestBody AuthDTO.SolicitarRedefinicaoRequest request) {
+        return ResponseEntity.ok(authService.solicitarRedefinicao(request));
+    }
+
+    /** Redefine a senha usando o token gerado em /solicitar-redefinicao. */
+    @PostMapping("/redefinir-senha")
+    public ResponseEntity<Void> redefinirSenha(
+            @Valid @RequestBody AuthDTO.RedefinirSenhaRequest request) {
+        authService.redefinirSenha(request);
+        return ResponseEntity.noContent().build();
     }
 }

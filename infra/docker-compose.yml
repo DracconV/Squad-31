@@ -1,5 +1,7 @@
 services:
 
+  # ── Infraestrutura ────────────────────────────────────────
+
   postgres:
     image: postgres:16
     container_name: seed-postgres
@@ -87,6 +89,30 @@ services:
       retries: 5
       start_period: 40s
 
+  kafka-init:
+    image: apache/kafka:3.7.0
+    container_name: seed-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+          --create --if-not-exists \
+          --topic inscricao-concluida \
+          --partitions 1 \
+          --replication-factor 1
+        echo "Topico inscricao-concluida garantido."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+          --create --if-not-exists \
+          --topic simulado-eventos \
+          --partitions 1 \
+          --replication-factor 1
+        echo "Topico simulado-eventos garantido."
+    networks:
+      - seed-network
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: seed-kafka-ui
@@ -101,12 +127,6 @@ services:
       - "8090:8080"
     networks:
       - seed-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -119,20 +139,13 @@ services:
       - "9090:9090"
     networks:
       - seed-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
 
   grafana:
     image: grafana/grafana:10.4.0
     container_name: seed-grafana
     restart: always
     depends_on:
-      prometheus:
-        condition: service_healthy
+      - prometheus
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
@@ -143,12 +156,6 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - seed-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
   jaeger:
     image: jaegertracing/all-in-one:1.56
@@ -162,12 +169,281 @@ services:
       - "4318:4318"
     networks:
       - seed-network
+
+  # ── Microserviços ─────────────────────────────────────────
+
+  ms-autenticacao:
+    build:
+      context: ../backend/ms-autenticacao
+      dockerfile: Dockerfile
+    container_name: seed-ms-autenticacao
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      OTEL_SERVICE_NAME: ms-autenticacao
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "8081:8081"
+    networks:
+      - seed-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:16686/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 20s
+      retries: 5
+      start_period: 60s
+
+  ms-cursos:
+    build:
+      context: ../backend/ms-cursos
+      dockerfile: Dockerfile
+    container_name: seed-ms-cursos
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: inscricao-concluida
+      PORT: 8085
+    ports:
+      - "8085:8085"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ms-certificados:
+    build:
+      context: ../backend/ms-certificados
+      dockerfile: Dockerfile
+    container_name: seed-ms-certificados
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: inscricao-concluida
+      KAFKA_GROUP_ID: ms-certificados
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: certificados
+      MINIO_USE_SSL: "false"
+      PORT: 8086
+    ports:
+      - "8086:8086"
+    networks:
+      - seed-network
+
+  ms-questoes:
+    build:
+      context: ../backend/ms-questoes
+      dockerfile: Dockerfile
+    container_name: seed-ms-questoes
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ENEM_AUTO_IMPORT: "true"
+      OTEL_SERVICE_NAME: ms-questoes
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "8087:8087"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  ms-simulados:
+    build:
+      context: ../backend/ms-simulados
+      dockerfile: Dockerfile
+    container_name: seed-ms-simulados
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASS: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKER: kafka:29092
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8088
+      OTEL_SERVICE_NAME: ms-simulados
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "8088:8088"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  ms-relatorios:
+    build:
+      context: ../backend/ms-relatorios
+      dockerfile: Dockerfile
+    container_name: seed-ms-relatorios
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8089
+      OTEL_SERVICE_NAME: ms-relatorios
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "8089:8089"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  api-gateway:
+    build:
+      context: ../backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: seed-api-gateway
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      MS_AUTENTICACAO_URL: http://ms-autenticacao:8081
+      MS_CURSOS_URL: http://ms-cursos:8085
+      MS_CERTIFICADOS_URL: http://ms-certificados:8086
+      MS_QUESTOES_URL: http://ms-questoes:8087
+      MS_SIMULADOS_URL: http://ms-simulados:8088
+      MS_RELATORIOS_URL: http://ms-relatorios:8089
+      JWT_SECRET: ${JWT_SECRET}
+      OTEL_SERVICE_NAME: api-gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "8080:8080"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: seed-frontend
+    restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - seed-network
 
 volumes:
   postgres_data:

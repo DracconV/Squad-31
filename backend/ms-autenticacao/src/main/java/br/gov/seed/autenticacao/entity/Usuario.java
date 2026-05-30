@@ -37,9 +37,11 @@ public class Usuario implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Perfil perfil;
 
+    @Builder.Default
     @Column(name = "primeiro_acesso", nullable = false)
     private Boolean primeiroAcesso = true;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean ativo = true;
 
@@ -47,9 +49,11 @@ public class Usuario implements UserDetails {
     @JoinColumn(name = "instituicao_id")
     private Instituicao instituicao;
 
+    @Builder.Default
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
+    @Builder.Default
     @Column(name = "atualizado_em", nullable = false)
     private LocalDateTime atualizadoEm = LocalDateTime.now();
 

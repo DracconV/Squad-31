@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import { ROTA_POR_PERFIL } from '../lib/auth'
@@ -19,6 +19,16 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const u = await signIn({ matricula: matricula.trim(), senha })
+
+      // Se for o primeiro acesso, redireciona para troca de senha
+      if (u.primeiroAcesso) {
+        navigate('/primeiro-acesso', {
+          replace: true,
+          state: { matricula: matricula.trim(), senhaTemporaria: senha, perfil: u.perfil },
+        })
+        return
+      }
+
       const destino = ROTA_POR_PERFIL[u.perfil] ?? '/'
       navigate(destino, { replace: true })
     } catch (err) {
@@ -105,9 +115,17 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Esqueceu a senha? Procure a secretaria da sua escola.
-        </p>
+        <div className="mt-6 text-center space-y-2">
+          <Link
+            to="/redefinir-senha"
+            className="block text-xs text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+          >
+            Esqueceu a senha? Redefinir agora
+          </Link>
+          <p className="text-xs text-slate-400">
+            Ou procure a secretaria da sua escola.
+          </p>
+        </div>
       </div>
     </div>
   )

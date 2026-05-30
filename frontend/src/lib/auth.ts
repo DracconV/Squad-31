@@ -57,7 +57,14 @@ export function decodeJwt(token: string): JwtPayload | null {
     const parts = token.split('.')
     if (parts.length !== 3) return null
     const payload = parts[1]
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    // Decodifica base64url respeitando UTF-8 (nomes acentuados: José, João, Conceição)
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    )
     return JSON.parse(json) as JwtPayload
   } catch {
     return null
@@ -76,11 +83,12 @@ export function isTokenExpired(token: string | null): boolean {
  * Mapa de perfil → caminho do portal correspondente.
  * Usado para redirecionar o usuário após o login.
  */
+/** Todos os perfis vão para /dashboard — o MainLayout adapta o menu */
 export const ROTA_POR_PERFIL: Record<Perfil, string> = {
-  ALUNO_EM: '/aluno-em',
-  ALUNO_EJA: '/aluno-eja',
-  ALUNO_PROF: '/aluno-prof',
-  PROFESSOR: '/professor',
-  ADMIN_ESCOLA: '/admin-escola',
-  ADMIN_SEED: '/admin-seed',
+  ALUNO_EM:    '/dashboard',
+  ALUNO_EJA:   '/dashboard',
+  ALUNO_PROF:  '/dashboard',
+  PROFESSOR:   '/dashboard',
+  ADMIN_ESCOLA: '/dashboard',
+  ADMIN_SEED:  '/dashboard',
 }
