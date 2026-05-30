@@ -6,10 +6,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -92,5 +95,59 @@ public class RelatorioController {
     )
     public ResponseEntity<RelatorioDTO.PainelMacro> painelMacro() {
         return ResponseEntity.ok(relatorioService.painelMacro());
+    }
+
+    // ── Exportação CSV ─────────────────────────────────────────────────────────
+
+    @GetMapping(value = "/seed/painel-macro/export", produces = "text/csv")
+    @PreAuthorize("hasRole('ADMIN_SEED')")
+    @Operation(summary = "Exporta o painel macro por município em CSV")
+    public ResponseEntity<byte[]> exportPainelMacro() {
+        RelatorioDTO.PainelMacro painel = relatorioService.painelMacro();
+        StringBuilder sb = new StringBuilder("﻿"); // BOM p/ acentos no Excel
+        sb.append("Municipio;Escolas;Alunos;Professores;Media notas\n");
+        for (RelatorioDTO.PainelMunicipioItem m : painel.municipios()) {
+            sb.append(csv(m.municipio())).append(';')
+              .append(m.totalInstituicoes()).append(';')
+              .append(m.totalAlunos()).append(';')
+              .append(m.totalProfessores()).append(';')
+              .append(m.mediaNotas()).append('\n');
+        }
+        return csvResponse(sb.toString(), "painel-macro.csv");
+    }
+
+    @GetMapping(value = "/cursos/taxa-conclusao/export", produces = "text/csv")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    @Operation(summary = "Exporta a taxa de conclusão por curso em CSV")
+    public ResponseEntity<byte[]> exportTaxaConclusao() {
+        List<RelatorioDTO.TaxaConclusaoCurso> taxas = relatorioService.taxaConclusaoCursos();
+        StringBuilder sb = new StringBuilder("﻿");
+        sb.append("Curso ID;Inscritos;Concluidos;Taxa conclusao (%)\n");
+        for (RelatorioDTO.TaxaConclusaoCurso t : taxas) {
+            sb.append(csv(t.cursoId().toString())).append(';')
+              .append(t.totalInscritos()).append(';')
+              .append(t.totalConcluidos()).append(';')
+              .append(t.taxaConclusao()).append('\n');
+        }
+        return csvResponse(sb.toString(), "taxa-conclusao.csv");
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    private ResponseEntity<byte[]> csvResponse(String conteudo, String nomeArquivo) {
+        byte[] body = conteudo.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeArquivo + "\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(body);
+    }
+
+    /** Escapa um campo CSV (aspas duplas se contiver separador, aspas ou quebra de linha). */
+    private String csv(String valor) {
+        if (valor == null) return "";
+        if (valor.contains(";") || valor.contains("\"") || valor.contains("\n")) {
+            return "\"" + valor.replace("\"", "\"\"") + "\"";
+        }
+        return valor;
     }
 }

@@ -14,6 +14,7 @@ public record CriarQuestaoRequest(
         @NotBlank String dificuldade,
         @NotBlank String tipoUso,
         @NotBlank String nivelEnsino,
+        String explicacao,
         @NotNull UUID disciplinaId,
         UUID assuntoId,
         @NotNull @Size(min = 2, max = 5) @Valid List<AlternativaRequest> alternativas

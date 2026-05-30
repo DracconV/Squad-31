@@ -4,6 +4,7 @@ import br.gov.seed.questoes.dto.AssuntoDto;
 import br.gov.seed.questoes.dto.CriarQuestaoRequest;
 import br.gov.seed.questoes.dto.DisciplinaDto;
 import br.gov.seed.questoes.dto.QuestaoResponse;
+import br.gov.seed.questoes.service.DificuldadeService;
 import br.gov.seed.questoes.service.EnemImporterService;
 import br.gov.seed.questoes.service.QuestaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +37,7 @@ public class QuestaoController {
 
     private final QuestaoService questaoService;
     private final EnemImporterService enemImporterService;
+    private final DificuldadeService dificuldadeService;
 
     // ── Leitura ──────────────────────────────────────────────────────────────
 
@@ -132,6 +134,47 @@ public class QuestaoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+        summary = "Revela a alternativa correta de uma questão (modo praticar)",
+        description = "Retorna o id da alternativa correta e a explicação. Disponível a qualquer usuário autenticado.",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @GetMapping("/questoes/{id}/gabarito")
+    public ResponseEntity<br.gov.seed.questoes.dto.GabaritoResponse> gabarito(@PathVariable UUID id) {
+        return ResponseEntity.ok(questaoService.gabarito(id));
+    }
+
+    // ── Favoritas / marcadas para revisão ─────────────────────────────────────
+
+    @Operation(
+        summary = "Lista as questões marcadas para revisão pelo aluno autenticado",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @GetMapping("/questoes/favoritas")
+    public ResponseEntity<List<QuestaoResponse>> listarFavoritas(HttpServletRequest request) {
+        return ResponseEntity.ok(questaoService.listarFavoritas(extrairUserId(request)));
+    }
+
+    @Operation(
+        summary = "Marca uma questão para revisão",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @PostMapping("/questoes/{id}/favoritar")
+    public ResponseEntity<Void> favoritar(@PathVariable UUID id, HttpServletRequest request) {
+        questaoService.favoritar(extrairUserId(request), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Remove a marcação de revisão de uma questão",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @DeleteMapping("/questoes/{id}/favoritar")
+    public ResponseEntity<Void> desfavoritar(@PathVariable UUID id, HttpServletRequest request) {
+        questaoService.desfavoritar(extrairUserId(request), id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Disciplinas e Assuntos ────────────────────────────────────────────────
 
     @Operation(
@@ -199,6 +242,23 @@ public class QuestaoController {
         return ResponseEntity.accepted().body(
                 Map.of("status", "Importação iniciada em background. Acompanhe os logs do serviço.")
         );
+    }
+
+    @Operation(
+        summary = "Recalcula a dificuldade das questões pelo desempenho real dos alunos",
+        description = "Lê historico_questao_aluno e reclassifica questões com amostra suficiente " +
+                      "(FACIL/MEDIO/DIFICIL pela taxa de acerto). Somente ADMIN_SEED. " +
+                      "Também roda automaticamente todo dia às 3h.",
+        security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @PostMapping("/questoes/recalcular-dificuldade")
+    @PreAuthorize("hasRole('ADMIN_SEED')")
+    public ResponseEntity<Map<String, Object>> recalcularDificuldade() {
+        int atualizadas = dificuldadeService.recalcular();
+        return ResponseEntity.ok(Map.of(
+                "status", "Recálculo concluído",
+                "questoesAtualizadas", atualizadas
+        ));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

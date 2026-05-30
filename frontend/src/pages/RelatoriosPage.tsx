@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
-import { getResumoRede, getTaxaConclusao, getAlunosPrimeiroAcesso, getPainelMacro } from '../lib/api'
+import { getResumoRede, getTaxaConclusao, getAlunosPrimeiroAcesso, getPainelMacro, exportarPainelMacroCsv, exportarTaxaConclusaoCsv } from '../lib/api'
 
 function StatBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -80,7 +80,17 @@ export default function RelatoriosPage() {
 
       {/* Taxa de conclusão por curso */}
       <section>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">Taxa de conclusão por curso</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-700">Taxa de conclusão por curso</h2>
+          {taxas.length > 0 && (
+            <button
+              onClick={() => exportarTaxaConclusaoCsv()}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+            >
+              ↓ Exportar CSV
+            </button>
+          )}
+        </div>
         {loadingTaxas ? (
           <div className="space-y-2">
             {[1,2,3].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
@@ -127,14 +137,24 @@ export default function RelatoriosPage() {
       {/* Painel macro por município — só ADMIN_SEED */}
       {isAdminSeed && (
         <section aria-labelledby="painel-macro-titulo">
-          <h2 id="painel-macro-titulo" className="text-base font-semibold text-gray-700 mb-3">
-            Painel macro por município
-            {painel && (
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                ({painel.total_municipios} municípios)
-              </span>
+          <div className="flex items-center justify-between mb-3">
+            <h2 id="painel-macro-titulo" className="text-base font-semibold text-gray-700">
+              Painel macro por município
+              {painel && (
+                <span className="ml-2 text-sm font-normal text-gray-400">
+                  ({painel.total_municipios} municípios)
+                </span>
+              )}
+            </h2>
+            {painel && painel.municipios.length > 0 && (
+              <button
+                onClick={() => exportarPainelMacroCsv()}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+              >
+                ↓ Exportar CSV
+              </button>
             )}
-          </h2>
+          </div>
           {loadingPainel ? (
             <div className="space-y-2">
               {[1,2,3].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
