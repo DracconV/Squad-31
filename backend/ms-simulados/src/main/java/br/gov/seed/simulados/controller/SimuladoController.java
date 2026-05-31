@@ -1,5 +1,6 @@
 package br.gov.seed.simulados.controller;
 
+import br.gov.seed.simulados.dto.CriarSimuladoAleatorioRequest;
 import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
 import br.gov.seed.simulados.dto.RevisaoResponse;
@@ -288,6 +289,22 @@ public class SimuladoController {
             HttpServletRequest httpRequest) {
         UUID professorId = extrairAlunoId(httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(simuladoService.criar(request, professorId));
+    }
+
+    @Operation(
+        summary = "Cria um simulado com questões aleatórias",
+        description = "Cria o simulado já preenchido com N questões sorteadas do banco. " +
+                      "Filtros opcionais: disciplinaId, dificuldade (FACIL|MEDIO|DIFICIL), nivelEnsino. " +
+                      "Retorna 400 se nenhuma questão atender aos filtros."
+    )
+    @ApiResponse(responseCode = "201", description = "Simulado criado e populado")
+    @PostMapping("/aleatorio")
+    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    public ResponseEntity<SimuladoResponse> criarAleatorio(
+            @Valid @RequestBody CriarSimuladoAleatorioRequest request,
+            HttpServletRequest httpRequest) {
+        UUID professorId = extrairAlunoId(httpRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(simuladoService.criarAleatorio(request, professorId));
     }
 
     @Operation(summary = "Atualiza um simulado")

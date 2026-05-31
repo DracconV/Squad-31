@@ -9,6 +9,26 @@
     "type": "bearer",
     "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Injeta o JWT salvo em todas as requisições, exceto as rotas públicas.",
+          "const token = pm.collectionVariables.get('token');",
+          "const url = pm.request.url.toString();",
+          "const publicas = ['/auth/login', '/auth/primeiro-acesso', '/auth/solicitar-redefinicao', '/auth/redefinir-senha', '/verificar-certificado'];",
+          "const ehPublica = publicas.some((p) => url.indexOf(p) !== -1);",
+          "if (token && !ehPublica) {",
+          "  pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + token });",
+          "} else if (!token && !ehPublica) {",
+          "  console.warn('Token vazio — rode \"Autenticação > Login (admin)\" primeiro.');",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "token", "value": "" },
@@ -609,6 +629,16 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado de Teste\",\n  \"turmaId\": \"{{turmaId}}\",\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"dataInicio\": null,\n  \"dataFim\": null\n}" },
             "url": { "raw": "{{baseUrl}}/simulados", "host": ["{{baseUrl}}"], "path": ["simulados"] }
+          }
+        },
+        {
+          "name": "Criar simulado ALEATÓRIO (questões sorteadas)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado Aleatório de Matemática\",\n  \"turmaId\": \"{{turmaId}}\",\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"dataInicio\": null,\n  \"dataFim\": null,\n  \"quantidade\": 10,\n  \"disciplinaId\": \"{{disciplinaId}}\",\n  \"dificuldade\": \"MEDIO\",\n  \"nivelEnsino\": \"MEDIO\"\n}" },
+            "url": { "raw": "{{baseUrl}}/simulados/aleatorio", "host": ["{{baseUrl}}"], "path": ["simulados", "aleatorio"] },
+            "description": "disciplinaId, dificuldade e nivelEnsino são opcionais — remova do corpo para sortear entre todas as questões."
           }
         },
         {
