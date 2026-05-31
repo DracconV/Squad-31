@@ -323,6 +323,22 @@ export async function adicionarAlunoTurma(turmaId: string, alunoId: string): Pro
   await api.post(`/turmas/${turmaId}/alunos`, { alunoId })
 }
 
+/* ── Instituições (ms-autenticacao) ──────────────────────── */
+
+export interface Instituicao {
+  id: string
+  nome: string
+  municipio: string
+  codigoInep: string
+  ativo: boolean
+  criadoEm: string
+}
+
+export async function listarInstituicoes(): Promise<Instituicao[]> {
+  const { data } = await api.get<Instituicao[]>('/instituicoes')
+  return data
+}
+
 /* ── Usuários Admin (ms-autenticacao) ────────────────────── */
 
 export interface Usuario {

@@ -6,6 +6,7 @@ import {
   listarTurmas,
   listarAlunosDaTurma,
   criarTurma,
+  listarInstituicoes,
   type Turma,
   type AlunoTurma,
 } from '../lib/api'
@@ -66,6 +67,11 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState({ nome: '', ano: new Date().getFullYear(), modalidade: 'MEDIO', instituicaoId: '' })
   const [erro, setErro] = useState('')
 
+  const { data: instituicoes = [] } = useQuery({
+    queryKey: ['instituicoes'],
+    queryFn: listarInstituicoes,
+  })
+
   const mutation = useMutation({
     mutationFn: criarTurma,
     onSuccess: () => {
@@ -81,6 +87,7 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
   const handleSubmit = (ev: React.FormEvent) => {
     ev.preventDefault()
     if (!form.nome.trim()) return setErro('Nome obrigatório.')
+    if (!form.instituicaoId) return setErro('Selecione a instituição.')
     setErro('')
     mutation.mutate(form)
   }
@@ -127,13 +134,19 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ID da instituição</label>
-            <input
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instituição</label>
+            <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.instituicaoId}
               onChange={(e) => setForm((f) => ({ ...f, instituicaoId: e.target.value }))}
-              placeholder="UUID da instituição"
-            />
+            >
+              <option value="">Selecione a instituição…</option>
+              {instituicoes.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.nome} — {i.municipio}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200">
