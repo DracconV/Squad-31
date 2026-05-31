@@ -70,7 +70,7 @@ spring:
             - id: ms-relatorios
               uri: ${MS_RELATORIOS_URL:http://localhost:8089}
               predicates:
-                - Path=/relatorios/**,/diagnostico/**
+                - Path=/relatorios/**,/diagnostico/**,/desempenho/**
 
 server:
   port: 8080
