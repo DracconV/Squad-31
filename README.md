@@ -44,6 +44,7 @@ Squad-31/
 │   ├── ms-questoes/          # Java — Banco de questões + categorização IA
 │   ├── ms-simulados/         # Java — Criação, auto-save Redis, cálculo de notas
 │   ├── ms-relatorios/        # Java — Dashboards + diagnóstico IA
+│   ├── ms-notificacoes/      # Java — Notificações institucionais
 │   ├── ms-cursos/            # Go  — Módulos, agendamento, inscrições
 │   └── ms-certificados/      # Go  — Geração PDF, QR Code verificável
 ├── analytics-ia/             # Python — FastAPI + Claude API (diagnóstico adaptativo)
@@ -136,6 +137,9 @@ npm run dev
 | POST | `/simulados` | Criar simulado pontuado | JWT |
 | POST | `/simulados/{id}/responder` | Auto-save de resposta | JWT |
 | POST | `/simulados/{id}/finalizar` | Finalizar e calcular nota | JWT |
+| GET | `/api/notificacoes` | Listar notificações institucionais do usuário | JWT |
+| GET | `/api/notificacoes/unread/count` | Contar notificações não lidas | JWT |
+| POST | `/api/notificacoes/destino` | Criar notificações para destinatários específicos | JWT (admin) |
 | GET | `/alunos/{id}/diagnostico` | Mapa de lacunas por IA | JWT |
 | GET | `/turmas/{id}/desempenho` | Desempenho agregado da turma | JWT |
 | GET | `/certificados/{aluno}/{curso}` | Download do certificado PDF | JWT |

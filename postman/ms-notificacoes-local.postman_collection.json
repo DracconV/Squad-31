@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "SEED - MS Notificacoes Local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8091"
+    },
+    {
+      "key": "adminUserId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "alunoUserId",
+      "value": "00000000-0000-0000-0000-000000000101"
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/actuator/health"
+      }
+    },
+    {
+      "name": "Criar notificacao para destinatarios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "if (Array.isArray(response) && response.length > 0) {",
+              "  pm.collectionVariables.set('notificationId', response[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Seed-User-Id",
+            "value": "{{adminUserId}}"
+          },
+          {
+            "key": "X-Seed-Perfil",
+            "value": "ADMIN_SEED"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userIds\": [\n    \"{{alunoUserId}}\"\n  ],\n  \"title\": \"Simulado liberado\",\n  \"message\": \"O Simulado SEED de Matematica ja esta disponivel.\",\n  \"type\": \"SIMULADO_LIBERADO\",\n  \"channel\": \"IN_APP\",\n  \"referenceType\": \"SIMULADO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/notificacoes/destino"
+      }
+    },
+    {
+      "name": "Listar notificacoes do aluno",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Seed-User-Id",
+            "value": "{{alunoUserId}}"
+          },
+          {
+            "key": "X-Seed-Perfil",
+            "value": "ALUNO_EM"
+          }
+        ],
+        "url": "{{baseUrl}}/notificacoes"
+      }
+    },
+    {
+      "name": "Contar nao lidas do aluno",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Seed-User-Id",
+            "value": "{{alunoUserId}}"
+          },
+          {
+            "key": "X-Seed-Perfil",
+            "value": "ALUNO_EM"
+          }
+        ],
+        "url": "{{baseUrl}}/notificacoes/unread/count"
+      }
+    },
+    {
+      "name": "Marcar como lida",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "X-Seed-User-Id",
+            "value": "{{alunoUserId}}"
+          },
+          {
+            "key": "X-Seed-Perfil",
+            "value": "ALUNO_EM"
+          }
+        ],
+        "url": "{{baseUrl}}/notificacoes/{{notificationId}}/read"
+      }
+    },
+    {
+      "name": "Arquivar",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "X-Seed-User-Id",
+            "value": "{{alunoUserId}}"
+          },
+          {
+            "key": "X-Seed-Perfil",
+            "value": "ALUNO_EM"
+          }
+        ],
+        "url": "{{baseUrl}}/notificacoes/{{notificationId}}/archive"
+      }
+    }
+  ]
+}
