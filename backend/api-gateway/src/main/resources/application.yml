@@ -47,6 +47,11 @@ spring:
               predicates:
                 - Path=/agendamentos/**
 
+            - id: ms-autenticacao-frequencia
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/frequencia/**
+
             - id: ms-cursos
               uri: ${MS_CURSOS_URL:http://localhost:8085}
               predicates:

@@ -25,7 +25,7 @@ public class DesempenhoController {
     private final DesempenhoTurmaService turmaService;
 
     @GetMapping("/aluno/{alunoId}/disciplina/{disciplina}")
-    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obter desempenho do aluno em disciplina")
     public ResponseEntity<DesempenhoAlunoResponse> obterDesempenhoAluno(
         @PathVariable UUID alunoId,
@@ -35,7 +35,7 @@ public class DesempenhoController {
     }
 
     @GetMapping("/aluno/{alunoId}/historico")
-    @PreAuthorize("hasAnyRole('PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obter histórico de desempenho do aluno")
     public ResponseEntity<List<DesempenhoAlunoResponse>> obterHistoricoAluno(
         @PathVariable UUID alunoId
