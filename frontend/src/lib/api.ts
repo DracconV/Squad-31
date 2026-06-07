@@ -622,3 +622,102 @@ export function exportarPainelMacroCsv(): Promise<void> {
 export function exportarTaxaConclusaoCsv(): Promise<void> {
   return baixarCsv('/relatorios/cursos/taxa-conclusao/export', 'taxa-conclusao.csv')
 }
+
+/* ── Desempenho (ms-relatorios) ─────────────────────────── */
+
+export interface DesempenhoAluno {
+  id: string
+  alunoId: string
+  turmaId: string
+  disciplina: string
+  nota_media: number
+  questoes_acertadas: number
+  questoes_total: number
+  taxa_acerto: number
+  atualizado_em: string
+}
+
+export interface DesempenhoTurma {
+  id: string
+  turmaId: string
+  media_turma: number
+  mediana_turma: number
+  maior_nota: number
+  menor_nota: number
+  taxa_conclusao: number
+  alunos_ativos: number
+  total_alunos: number
+  atualizado_em: string
+}
+
+export async function getHistoricoDesempenhoAluno(alunoId: string): Promise<DesempenhoAluno[]> {
+  const { data } = await api.get<DesempenhoAluno[]>(`/desempenho/aluno/${alunoId}/historico`)
+  return data
+}
+
+export async function getDesempenhoAlunoDisciplina(alunoId: string, disciplina: string): Promise<DesempenhoAluno> {
+  const { data } = await api.get<DesempenhoAluno>(
+    `/desempenho/aluno/${alunoId}/disciplina/${encodeURIComponent(disciplina)}`,
+  )
+  return data
+}
+
+export async function getDesempenhoTurma(turmaId: string): Promise<DesempenhoTurma> {
+  const { data } = await api.get<DesempenhoTurma>(`/desempenho/turma/${turmaId}`)
+  return data
+}
+
+export async function getAlunosBaixoDesempenho(turmaId: string): Promise<DesempenhoAluno[]> {
+  const { data } = await api.get<DesempenhoAluno[]>(`/desempenho/turma/${turmaId}/alunos-baixo-desempenho`)
+  return data
+}
+
+/* ── Frequência / Faltas (ms-autenticacao) ──────────────── */
+
+export interface FrequenciaResumoItem {
+  disciplina: string
+  aulas: number
+  faltas: number
+  presenca: number
+  limite: number
+  atualizado_em: string
+}
+
+export interface FrequenciaTurmaAluno {
+  alunoId: string
+  nome: string
+  matricula: string
+  faltas: number
+  presenca: number
+  status: string
+}
+
+export interface FrequenciaTurma {
+  turmaId: string
+  presenca_media: number
+  total_alunos: number
+  alunos_em_atencao: number
+  alunos: FrequenciaTurmaAluno[]
+  atualizado_em: string
+}
+
+export async function getFrequenciaAlunoResumo(alunoId: string): Promise<FrequenciaResumoItem[]> {
+  const { data } = await api.get<FrequenciaResumoItem[]>(`/frequencia/aluno/${alunoId}/resumo`)
+  return data
+}
+
+export async function getFrequenciaTurma(turmaId: string): Promise<FrequenciaTurma> {
+  const { data } = await api.get<FrequenciaTurma>(`/frequencia/turma/${turmaId}`)
+  return data
+}
+
+export async function registrarFrequencia(payload: {
+  alunoId: string
+  turmaId: string
+  disciplina: string
+  totalAulas: number
+  faltas: number
+}): Promise<FrequenciaResumoItem> {
+  const { data } = await api.post<FrequenciaResumoItem>('/frequencia/registrar', payload)
+  return data
+}

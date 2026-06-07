@@ -15,8 +15,8 @@ import SimuladosPage    from './pages/SimuladosPage'
 import SimuladoPage     from './pages/SimuladoPage'
 import BancoQuestoesPage from './pages/BancoQuestoesPage'
 import HistoricoPage    from './pages/HistoricoPage'
-import PerformancePage  from './pages/PerformancePage'
 import NotasPage        from './pages/NotasPage'
+import FaltasPage       from './pages/FaltasPage'
 import LocalProvaPage   from './pages/LocalProvaPage'
 import CertificadosPage from './pages/CertificadosPage'
 import ProvasPage       from './pages/ProvasPage'
@@ -63,8 +63,9 @@ function App() {
         <Route path="simulados/:id"   element={<SimuladoPage />} />
         <Route path="banco-questoes"  element={<BancoQuestoesPage />} />
         <Route path="historico"       element={<HistoricoPage />} />
-        <Route path="desempenho"      element={<PerformancePage />} />
+        <Route path="desempenho"      element={<NotasPage />} />
         <Route path="notas"           element={<NotasPage />} />
+        <Route path="faltas"          element={<FaltasPage />} />
         <Route path="local-prova"     element={<LocalProvaPage />} />
         <Route path="cursos"          element={<CursosPage />} />
         <Route path="certificados"    element={<CertificadosPage />} />

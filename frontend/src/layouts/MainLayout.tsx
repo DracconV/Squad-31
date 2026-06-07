@@ -10,6 +10,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/historico':      'Histórico',
   '/desempenho':     'Desempenho',
   '/notas':          'Notas',
+  '/faltas':         'Faltas',
   '/local-prova':    'Local de Prova',
   '/certificados':   'Certificados',
   '/provas':         'Provas',
