@@ -47,6 +47,11 @@ spring:
               predicates:
                 - Path=/agendamentos/**
 
+            - id: ms-autenticacao-frequencia
+              uri: ${MS_AUTENTICACAO_URL:http://localhost:8081}
+              predicates:
+                - Path=/frequencia/**
+
             - id: ms-cursos
               uri: ${MS_CURSOS_URL:http://localhost:8085}
               predicates:
@@ -70,7 +75,7 @@ spring:
             - id: ms-relatorios
               uri: ${MS_RELATORIOS_URL:http://localhost:8089}
               predicates:
-                - Path=/relatorios/**,/diagnostico/**
+                - Path=/relatorios/**,/diagnostico/**,/desempenho/**
 
 server:
   port: 8080

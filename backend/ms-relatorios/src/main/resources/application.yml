@@ -20,7 +20,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # Histórico próprio: o ms-autenticacao é dono do flyway_schema_history padrão
+    # (banco compartilhado). Sem isto, o V1 deste serviço colide com o V1 daquele.
+    table: flyway_schema_history_relatorios
     baseline-on-migrate: true
+    baseline-version: 0
 
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}

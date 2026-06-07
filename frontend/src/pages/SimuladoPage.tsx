@@ -47,6 +47,7 @@ export default function SimuladoPage() {
     setEnviando(true)
     try {
       const res = await finalizarSimulado(id)
+      localStorage.removeItem(`simulado_inicio_${id}`) // limpa p/ um próximo "Refazer" começar do zero
       setResultado(res)
       setFase('resultado')
     } catch {
@@ -81,8 +82,20 @@ export default function SimuladoPage() {
         })
         setRespostas(restauradas)
 
-        // Tempo restante = início + tempoMinutos − agora
-        const fimMs = new Date(sessao.iniciadoEm).getTime() + detalhe.tempoMinutos * 60_000
+        // Início persistido no navegador para o contador NÃO reiniciar ao dar F5.
+        // Usa o horário guardado localmente (1ª vez que este aluno abriu) — não o da sessão,
+        // que pode reiniciar se o cookie de sessão não persistir através do gateway.
+        const chaveInicio = `simulado_inicio_${id}`
+        const salvo = localStorage.getItem(chaveInicio)
+        let inicioMs: number
+        if (salvo) {
+          inicioMs = Number(salvo)
+        } else {
+          inicioMs = new Date(sessao.iniciadoEm).getTime() || Date.now()
+          localStorage.setItem(chaveInicio, String(inicioMs))
+        }
+
+        const fimMs = inicioMs + detalhe.tempoMinutos * 60_000
         const segRestantes = Math.max(0, Math.round((fimMs - Date.now()) / 1000))
         setRestante(segRestantes)
         setFase('executando')

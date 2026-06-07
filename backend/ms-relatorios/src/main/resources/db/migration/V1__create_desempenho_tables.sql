@@ -1,5 +1,5 @@
 -- Tabela de desempenho do aluno
-CREATE TABLE desempenho_aluno (
+CREATE TABLE IF NOT EXISTS desempenho_aluno (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     aluno_id UUID NOT NULL,
     turma_id UUID NOT NULL,
@@ -13,12 +13,12 @@ CREATE TABLE desempenho_aluno (
     CONSTRAINT uk_aluno_disciplina UNIQUE (aluno_id, disciplina)
 );
 
-CREATE INDEX idx_desempenho_aluno_aluno_id ON desempenho_aluno(aluno_id);
-CREATE INDEX idx_desempenho_aluno_turma_id ON desempenho_aluno(turma_id);
-CREATE INDEX idx_desempenho_aluno_disciplina ON desempenho_aluno(disciplina);
+CREATE INDEX IF NOT EXISTS idx_desempenho_aluno_aluno_id ON desempenho_aluno(aluno_id);
+CREATE INDEX IF NOT EXISTS idx_desempenho_aluno_turma_id ON desempenho_aluno(turma_id);
+CREATE INDEX IF NOT EXISTS idx_desempenho_aluno_disciplina ON desempenho_aluno(disciplina);
 
 -- Tabela de desempenho agregado da turma
-CREATE TABLE desempenho_turma (
+CREATE TABLE IF NOT EXISTS desempenho_turma (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     turma_id UUID NOT NULL UNIQUE,
     media_turma DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
@@ -32,5 +32,5 @@ CREATE TABLE desempenho_turma (
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_desempenho_turma_turma_id ON desempenho_turma(turma_id);
+CREATE INDEX IF NOT EXISTS idx_desempenho_turma_turma_id ON desempenho_turma(turma_id);
 

@@ -1,5 +1,6 @@
 package br.gov.seed.simulados.service;
 
+import br.gov.seed.simulados.dto.CriarSimuladoAleatorioRequest;
 import br.gov.seed.simulados.dto.CriarSimuladoRequest;
 import br.gov.seed.simulados.dto.ResultadoResponse;
 import br.gov.seed.simulados.dto.RevisaoResponse;
@@ -251,6 +252,76 @@ public class SimuladoService {
         simulado.setDataInicio(request.dataInicio());
         simulado.setDataFim(request.dataFim());
         return SimuladoResponse.from(simuladoRepo.save(simulado));
+    }
+
+    /**
+     * Cria um simulado já preenchido com questões sorteadas aleatoriamente,
+     * respeitando filtros opcionais de disciplina, dificuldade e nível de ensino.
+     */
+    @Transactional
+    public SimuladoResponse criarAleatorio(CriarSimuladoAleatorioRequest request, UUID professorId) {
+        validarPeriodo(request.dataInicio(), request.dataFim());
+        if (request.quantidade() < 1) {
+            throw new IllegalArgumentException("A quantidade de questões deve ser no mínimo 1");
+        }
+
+        List<UUID> questaoIds = sortearQuestoes(
+                request.disciplinaId(), request.dificuldade(), request.nivelEnsino(), request.quantidade());
+
+        if (questaoIds.isEmpty()) {
+            throw new IllegalArgumentException("Nenhuma questão encontrada para os filtros informados");
+        }
+
+        Simulado simulado = new Simulado();
+        simulado.setTitulo(request.titulo());
+        simulado.setProfessorId(professorId);
+        simulado.setTurmaId(request.turmaId());
+        simulado.setTempoMinutos(request.tempoMinutos() > 0 ? request.tempoMinutos() : 60);
+        simulado.setPontuado(request.pontuado());
+        simulado.setDataInicio(request.dataInicio());
+        simulado.setDataFim(request.dataFim());
+        Simulado salvo = simuladoRepo.save(simulado);
+
+        List<SimuladoQuestao> vinculos = new ArrayList<>();
+        int ordem = 1;
+        for (UUID questaoId : questaoIds) {
+            SimuladoQuestao sq = new SimuladoQuestao();
+            sq.setId(new SimuladoQuestaoId(salvo.getId(), questaoId));
+            sq.setOrdem(ordem++);
+            vinculos.add(sq);
+        }
+        simuladoQuestaoRepo.saveAll(vinculos);
+
+        log.info("Simulado aleatório {} criado por {} com {} questões (disciplina={}, dificuldade={}, nivel={})",
+                salvo.getId(), professorId, questaoIds.size(),
+                request.disciplinaId(), request.dificuldade(), request.nivelEnsino());
+
+        List<SimuladoQuestao> questoes = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(salvo.getId());
+        return SimuladoResponse.from(salvo, questoes);
+    }
+
+    /** Sorteia IDs de questões ativas no banco compartilhado conforme filtros opcionais. */
+    private List<UUID> sortearQuestoes(UUID disciplinaId, String dificuldade, String nivelEnsino, int quantidade) {
+        StringBuilder sql = new StringBuilder("SELECT id::text FROM questao WHERE ativa = true");
+        List<Object> params = new ArrayList<>();
+
+        if (disciplinaId != null) {
+            sql.append(" AND disciplina_id = CAST(? AS uuid)");
+            params.add(disciplinaId.toString());
+        }
+        if (dificuldade != null && !dificuldade.isBlank()) {
+            sql.append(" AND dificuldade = ?");
+            params.add(dificuldade.trim());
+        }
+        if (nivelEnsino != null && !nivelEnsino.isBlank()) {
+            sql.append(" AND nivel_ensino = ?");
+            params.add(nivelEnsino.trim());
+        }
+        sql.append(" ORDER BY random() LIMIT ?");
+        params.add(quantidade);
+
+        List<String> ids = jdbcTemplate.queryForList(sql.toString(), String.class, params.toArray());
+        return ids.stream().map(UUID::fromString).toList();
     }
 
     @Transactional
