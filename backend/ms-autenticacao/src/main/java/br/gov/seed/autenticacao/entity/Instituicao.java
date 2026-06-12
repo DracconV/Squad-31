@@ -23,9 +23,11 @@ public class Instituicao {
     @Column(name = "codigo_inep", unique = true)
     private String codigoInep;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean ativo = true;
 
+    @Builder.Default
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 }

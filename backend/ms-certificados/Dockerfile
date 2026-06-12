@@ -1,11 +1,15 @@
 # ----- build stage -----
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-COPY go.mod go.sum* ./
-RUN go mod download || true
+# Copia go.mod/go.sum e baixa dependências (camada cacheada)
+COPY go.mod go.sum ./
+RUN go mod download
 
+# Copia fontes (inclui docs/ já gerado localmente)
 COPY . .
+
+# Compila o binário
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/ms-certificados .
 
 # ----- runtime stage -----
