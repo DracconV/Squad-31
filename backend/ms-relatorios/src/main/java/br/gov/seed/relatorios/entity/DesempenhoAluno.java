@@ -22,7 +22,8 @@ public class DesempenhoAluno {
     @Column(nullable = false)
     private UUID alunoId;
 
-    @Column(nullable = false)
+    /** Nullable: simulado avulso (sem turma) também gera desempenho. */
+    @Column
     private UUID turmaId;
 
     @Column(nullable = false)

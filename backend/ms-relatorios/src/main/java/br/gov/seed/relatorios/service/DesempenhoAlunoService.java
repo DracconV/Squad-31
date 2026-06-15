@@ -51,6 +51,11 @@ public class DesempenhoAlunoService {
                 .questoesTotal(0)
                 .build());
 
+        // Mantém o vínculo de turma mais recente (registro pode ter nascido de simulado avulso)
+        if (turmaId != null) {
+            desempenho.setTurmaId(turmaId);
+        }
+
         desempenho.setQuestoesAcertadas(desempenho.getQuestoesAcertadas() + acertos);
         desempenho.setQuestoesTotal(desempenho.getQuestoesTotal() + total);
         desempenho.calcularTaxaAcerto();

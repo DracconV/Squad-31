@@ -32,6 +32,14 @@ public class SimuladoConcluídoConsumer {
 
             var evento = objectMapper.readValue(mensagem, SimuladoConcluidoEvento.class);
 
+            // O tópico também carrega eventos TEMPO_ESGOTADO (sem aluno/disciplina) —
+            // ignora qualquer mensagem que não seja uma conclusão completa.
+            if (evento.alunoId() == null || evento.disciplina() == null
+                    || evento.acertos() == null || evento.total() == null) {
+                log.info("Evento ignorado (não é conclusão de simulado): {}", mensagem);
+                return;
+            }
+
             alunoService.atualizarDesempenho(
                 evento.alunoId(),
                 evento.turmaId(),
@@ -40,12 +48,17 @@ public class SimuladoConcluídoConsumer {
                 evento.total()
             );
 
-            turmaService.recalcularDesempenhoTurma(evento.turmaId());
+            // Simulado avulso (sem turma) não tem agregado de turma para recalcular
+            if (evento.turmaId() != null) {
+                turmaService.recalcularDesempenhoTurma(evento.turmaId());
+            }
 
-            ack.acknowledge();
             log.info("Evento processado com sucesso");
         } catch (Exception e) {
-            log.error("Erro ao processar evento do Kafka", e);
+            // Loga e segue — sem ack a mensagem-veneno seria reprocessada para sempre
+            log.error("Erro ao processar evento do Kafka — mensagem descartada: {}", mensagem, e);
+        } finally {
+            ack.acknowledge();
         }
     }
 
