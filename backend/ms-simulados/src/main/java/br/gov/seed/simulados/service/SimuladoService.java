@@ -183,15 +183,17 @@ public class SimuladoService {
         for (Map.Entry<String, int[]> entry : acertosPorDisciplina.entrySet()) {
             OutboxEvent evento = new OutboxEvent();
             evento.setTipo("SIMULADO_FINALIZADO");
+            // HashMap (não Map.of) para omitir turmaId quando nula —
+            // "" quebraria a desserialização de UUID no consumidor (ms-relatorios)
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("alunoId",    alunoId.toString());
+            if (turmaId != null) payload.put("turmaId", turmaId.toString());
+            payload.put("simuladoId", simuladoId.toString());
+            payload.put("disciplina", entry.getKey());
+            payload.put("acertos",    entry.getValue()[0]);
+            payload.put("total",      entry.getValue()[1]);
             try {
-                evento.setPayload(objectMapper.writeValueAsString(Map.of(
-                        "alunoId",    alunoId.toString(),
-                        "turmaId",    turmaId != null ? turmaId.toString() : "",
-                        "simuladoId", simuladoId.toString(),
-                        "disciplina", entry.getKey(),
-                        "acertos",    entry.getValue()[0],
-                        "total",      entry.getValue()[1]
-                )));
+                evento.setPayload(objectMapper.writeValueAsString(payload));
             } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 throw new RuntimeException("Erro ao serializar evento outbox para disciplina " + entry.getKey(), e);
             }

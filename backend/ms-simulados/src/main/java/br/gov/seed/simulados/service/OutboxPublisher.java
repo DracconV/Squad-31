@@ -27,11 +27,13 @@ public class OutboxPublisher {
 
         for (OutboxEvent evento : pendentes) {
             try {
+                // send() é assíncrono — o .get() força a confirmação do broker.
+                // Sem isso, marcaríamos ENVIADO mesmo com Kafka fora do ar (perda de evento).
                 kafkaTemplate.send(
                         "simulado-eventos",
                         evento.getId().toString(),
                         evento.getPayload()
-                );
+                ).get(10, java.util.concurrent.TimeUnit.SECONDS);
                 evento.setStatus("ENVIADO");
                 evento.setEnviadoEm(LocalDateTime.now());
                 outboxRepo.save(evento);
