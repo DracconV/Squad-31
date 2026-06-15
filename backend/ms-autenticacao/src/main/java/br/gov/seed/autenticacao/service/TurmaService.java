@@ -80,8 +80,10 @@ public class TurmaService {
         if (!turmaRepository.existsById(turmaId)) {
             throw new IllegalArgumentException("Turma nao encontrada: " + turmaId);
         }
-        if (!usuarioRepository.existsById(alunoId)) {
-            throw new IllegalArgumentException("Aluno nao encontrado: " + alunoId);
+        var usuario = usuarioRepository.findById(alunoId)
+                .orElseThrow(() -> new IllegalArgumentException("Aluno nao encontrado: " + alunoId));
+        if (!usuario.getPerfil().name().startsWith("ALUNO")) {
+            throw new IllegalArgumentException("Usuario nao e aluno (perfil: " + usuario.getPerfil() + ")");
         }
         if (alunoTurmaRepository.existsByAlunoIdAndTurmaId(alunoId, turmaId)) {
             throw new IllegalArgumentException("Aluno ja esta na turma");
