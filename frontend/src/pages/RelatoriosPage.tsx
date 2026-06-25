@@ -1,14 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
+import { Download, BarChart3, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getResumoRede, getTaxaConclusao, getAlunosPrimeiroAcesso, getPainelMacro, exportarPainelMacroCsv, exportarTaxaConclusaoCsv } from '../lib/api'
+import { Card } from '../components/Card'
 
 function StatBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+    <Card className="p-5">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
+    </Card>
   )
 }
 
@@ -45,10 +47,15 @@ export default function RelatoriosPage() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h1 className="text-xl font-bold text-gray-800">Relatórios</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Indicadores da rede SEED Educa</p>
-      </div>
+      <Card className="p-5 flex items-center gap-3">
+        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <BarChart3 size={22} />
+        </span>
+        <div>
+          <h2 className="font-bold text-gray-800 leading-tight">Indicadores da rede</h2>
+          <p className="text-sm text-gray-500">Acompanhe os números do SEED Educa.</p>
+        </div>
+      </Card>
 
       {/* Resumo da rede — só ADMIN_SEED */}
       {isAdminSeed && (
@@ -85,9 +92,9 @@ export default function RelatoriosPage() {
           {taxas.length > 0 && (
             <button
               onClick={() => exportarTaxaConclusaoCsv()}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
             >
-              ↓ Exportar CSV
+              <Download size={13} /> Exportar CSV
             </button>
           )}
         </div>
@@ -96,11 +103,11 @@ export default function RelatoriosPage() {
             {[1,2,3].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
           </div>
         ) : taxas.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+          <div className="bg-white rounded-2xl p-8 text-center border border-[#eef2f0] shadow-[0_1px_2px_rgba(16,40,28,.04),0_8px_24px_-12px_rgba(16,40,28,.12)]">
             <p className="text-gray-400 text-sm">Nenhum dado de conclusão disponível.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border border-[#eef2f0] overflow-hidden shadow-[0_1px_2px_rgba(16,40,28,.04),0_8px_24px_-12px_rgba(16,40,28,.12)]">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-left">
                 <tr>
@@ -121,7 +128,7 @@ export default function RelatoriosPage() {
                     <td className="px-5 py-3">
                       <div className="w-full bg-gray-100 rounded-full h-2">
                         <div
-                          className="bg-blue-500 h-2 rounded-full transition-all"
+                          className="bg-brand-500 h-2 rounded-full transition-all"
                           style={{ width: `${Math.min(t.taxa_conclusao, 100)}%` }}
                         />
                       </div>
@@ -149,9 +156,9 @@ export default function RelatoriosPage() {
             {painel && painel.municipios.length > 0 && (
               <button
                 onClick={() => exportarPainelMacroCsv()}
-                className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
               >
-                ↓ Exportar CSV
+                <Download size={13} /> Exportar CSV
               </button>
             )}
           </div>
@@ -160,11 +167,11 @@ export default function RelatoriosPage() {
               {[1,2,3].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
             </div>
           ) : !painel || painel.municipios.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+            <div className="bg-white rounded-2xl p-8 text-center border border-[#eef2f0] shadow-[0_1px_2px_rgba(16,40,28,.04),0_8px_24px_-12px_rgba(16,40,28,.12)]">
               <p className="text-gray-400 text-sm">Nenhum dado de município disponível.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#eef2f0] overflow-hidden shadow-[0_1px_2px_rgba(16,40,28,.04),0_8px_24px_-12px_rgba(16,40,28,.12)]">
               <table className="w-full text-sm" aria-label="Painel de municípios">
                 <thead className="bg-gray-50 text-gray-500 text-left">
                   <tr>
@@ -210,11 +217,11 @@ export default function RelatoriosPage() {
               {[1,2].map((i) => <div key={i} className="h-12 bg-white rounded-xl border animate-pulse" />)}
             </div>
           ) : !primeiroAcesso || primeiroAcesso.alunos.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
-              <p className="text-gray-400 text-sm">Todos os alunos já realizaram o 1º acesso. ✓</p>
-            </div>
+            <Card className="p-8 text-center">
+              <p className="inline-flex items-center gap-1.5 text-brand-600 text-sm font-medium"><CheckCircle2 size={16} /> Todos os alunos já realizaram o 1º acesso.</p>
+            </Card>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#eef2f0] overflow-hidden shadow-[0_1px_2px_rgba(16,40,28,.04),0_8px_24px_-12px_rgba(16,40,28,.12)]">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-left">
                   <tr>

@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { History, Clock, Calendar } from 'lucide-react'
 import { listarMinhasTentativas, type TentativaSimulado } from '../lib/api'
+import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 
 function formatDuracao(segundos: number) {
   const m = Math.floor(segundos / 60)
@@ -15,44 +18,54 @@ export default function HistoricoPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h1 className="text-xl font-bold text-gray-800">Histórico de Simulados</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Suas tentativas anteriores</p>
-      </div>
+      <Card className="p-5 flex items-center gap-3">
+        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          <History size={22} />
+        </span>
+        <div>
+          <h2 className="font-bold text-gray-800 leading-tight">Histórico de Simulados</h2>
+          <p className="text-sm text-gray-500">Suas tentativas anteriores e notas.</p>
+        </div>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3].map((i) => <div key={i} className="h-20 bg-white rounded-xl border animate-pulse" />)}
+          {[1,2,3].map((i) => <div key={i} className="h-20 bg-white rounded-2xl border animate-pulse" />)}
         </div>
       ) : tentativas.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-          <p className="text-4xl mb-3">📝</p>
-          <p className="text-gray-600 font-medium">Nenhum simulado realizado ainda.</p>
-          <p className="text-sm text-gray-400 mt-1">Acesse a seção Simulados e faça sua primeira prova!</p>
-        </div>
+        <Card className="p-4">
+          <EmptyState
+            icon={<History size={30} strokeWidth={1.75} />}
+            title="Nenhum simulado realizado"
+            description="Acesse a seção Simulados e faça sua primeira prova!"
+          />
+        </Card>
       ) : (
         <div className="space-y-3">
           {tentativas.map((t: TentativaSimulado) => {
             const nota = Number(t.nota)
-            const cor = nota >= 7 ? 'text-green-600' : nota >= 5 ? 'text-yellow-600' : 'text-red-500'
-            const bg = nota >= 7 ? 'bg-green-50 border-green-100' : nota >= 5 ? 'bg-yellow-50 border-yellow-100' : 'bg-red-50 border-red-100'
+            const cor = nota >= 7 ? 'text-brand-600' : nota >= 5 ? 'text-amber-600' : 'text-red-500'
+            const ring = nota >= 7 ? 'ring-brand-100' : nota >= 5 ? 'ring-amber-100' : 'ring-red-100'
 
             return (
-              <div key={t.id} className={`rounded-xl p-5 border ${bg} flex items-center justify-between gap-4`}>
-                <div>
+              <Card key={t.id} hover className={`p-5 flex items-center justify-between gap-4 ring-1 ${ring}`}>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-400 font-mono">{t.simuladoId.slice(0, 8)}…</p>
-                  <p className="text-sm text-gray-600 mt-0.5">
-                    {new Date(t.iniciadoEm).toLocaleDateString('pt-BR', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                    })}
-                    {t.finalizadoEm && ` · ${formatDuracao(t.tempoGastoSegundos)}`}
+                  <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-600 mt-1">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar size={14} />
+                      {new Date(t.iniciadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    {t.finalizadoEm && (
+                      <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {formatDuracao(t.tempoGastoSegundos)}</span>
+                    )}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className={`text-3xl font-bold ${cor}`}>{nota.toFixed(1)}</p>
                   <p className="text-xs text-gray-400">/ 10</p>
                 </div>
-              </div>
+              </Card>
             )
           })}
         </div>

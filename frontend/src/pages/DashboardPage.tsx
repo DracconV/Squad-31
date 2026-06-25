@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { BookOpen, GraduationCap, Award, Library, Users, ClipboardList, CheckCircle2, UserCheck } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { StatCard } from '../components/StatCard'
 import { ProgressBar } from '../components/ProgressBar'
@@ -47,10 +48,10 @@ function DashboardAluno() {
         <StatsSkeleton />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Cursos em andamento"  value={stats?.cursosAtivos ?? 0} />
-          <StatCard title="Cursos concluídos"    value={stats?.cursosConcluidos ?? 0} trend="up" trendValue="parabéns!" />
-          <StatCard title="Certificados emitidos" value={stats?.certificados ?? 0} />
-          <StatCard title="Cursos disponíveis"   value={stats?.totalCursos ?? 0} />
+          <StatCard title="Cursos em andamento"  value={stats?.cursosAtivos ?? 0} icon={<BookOpen size={18} />} />
+          <StatCard title="Cursos concluídos"    value={stats?.cursosConcluidos ?? 0} trend="up" trendValue="parabéns!" icon={<GraduationCap size={18} />} />
+          <StatCard title="Certificados emitidos" value={stats?.certificados ?? 0} icon={<Award size={18} />} />
+          <StatCard title="Cursos disponíveis"   value={stats?.totalCursos ?? 0} icon={<Library size={18} />} />
         </div>
       )}
 
@@ -116,10 +117,10 @@ function DashboardProfessor() {
         <StatsSkeleton />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} />
-          <StatCard title="Alunos acompanhados"   value={stats?.alunosAtivos ?? 0} />
-          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} />
-          <StatCard title="Cursos concluídos"     value={stats?.totalConcluidos ?? 0} trend="up" />
+          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} icon={<BookOpen size={18} />} />
+          <StatCard title="Alunos acompanhados"   value={stats?.alunosAtivos ?? 0} icon={<Users size={18} />} />
+          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} icon={<ClipboardList size={18} />} />
+          <StatCard title="Cursos concluídos"     value={stats?.totalConcluidos ?? 0} trend="up" icon={<CheckCircle2 size={18} />} />
         </div>
       )}
 
@@ -160,10 +161,10 @@ function DashboardAdmin() {
         <StatsSkeleton />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total de alunos"       value={stats?.totalAlunos ?? 0} />
-          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} />
-          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} />
-          <StatCard title="Conclusões"            value={stats?.totalConcluidos ?? 0} trend="up" />
+          <StatCard title="Total de alunos"       value={stats?.totalAlunos ?? 0} icon={<Users size={18} />} />
+          <StatCard title="Cursos ativos"         value={stats?.totalCursos ?? 0} icon={<BookOpen size={18} />} />
+          <StatCard title="Total de inscrições"   value={stats?.totalInscricoes ?? 0} icon={<UserCheck size={18} />} />
+          <StatCard title="Conclusões"            value={stats?.totalConcluidos ?? 0} trend="up" icon={<CheckCircle2 size={18} />} />
         </div>
       )}
 
@@ -203,5 +204,22 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const Component = user ? DASHBOARD_MAP[user.perfil as Perfil] : null
   if (!Component) return null
-  return <Component />
+
+  const primeiroNome = user?.nome?.trim().split(' ')[0] ?? ''
+  const hora = new Date().getHours()
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-[0_10px_30px_-12px_rgba(7,60,37,.5)]">
+        <h1 className="text-2xl font-extrabold tracking-tight">
+          {saudacao}{primeiroNome ? `, ${primeiroNome}` : ''}! 👋
+        </h1>
+        <p className="mt-1 text-sm text-brand-50/80">
+          Aqui está um resumo da sua atividade na plataforma.
+        </p>
+      </div>
+      <Component />
+    </div>
+  )
 }

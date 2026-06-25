@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+﻿import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { CheckCircle2, ArrowLeft } from 'lucide-react'
 import { solicitarRedefinicao, redefinirSenha, type RedefinicaoResponse } from '../lib/api'
 
 type Etapa = 'solicitar' | 'redefinir' | 'sucesso'
@@ -71,7 +72,7 @@ export default function RedefinirSenhaPage() {
                 value={matricula}
                 onChange={(e) => setMatricula(e.target.value)}
                 aria-describedby={erro ? 'erro-msg' : undefined}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 placeholder="Sua matrícula"
               />
             </div>
@@ -86,7 +87,7 @@ export default function RedefinirSenhaPage() {
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full rounded-lg bg-blue-700 px-4 py-2 font-medium text-white shadow transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-brand-700 px-4 py-2 font-medium text-white shadow transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Gerando token…' : 'Gerar token de redefinição'}
             </button>
@@ -97,12 +98,12 @@ export default function RedefinirSenhaPage() {
         {etapa === 'redefinir' && (
           <form onSubmit={handleRedefinir} className="space-y-5" noValidate>
             {resultado && (
-              <div role="status" className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+              <div role="status" className="rounded-lg bg-brand-50 border border-brand-200 p-4 text-sm text-brand-800">
                 <p className="font-semibold mb-1">Token gerado com sucesso!</p>
-                <p className="font-mono text-xs break-all bg-white rounded p-2 mt-1 select-all border border-blue-100">
+                <p className="font-mono text-xs break-all bg-white rounded p-2 mt-1 select-all border border-brand-100">
                   {resultado.token}
                 </p>
-                <p className="text-xs text-blue-500 mt-2">
+                <p className="text-xs text-brand-500 mt-2">
                   Válido até: {new Date(resultado.expiraEm).toLocaleString('pt-BR')}
                 </p>
               </div>
@@ -118,7 +119,7 @@ export default function RedefinirSenhaPage() {
                 required
                 value={token || resultado?.token || ''}
                 onChange={(e) => setToken(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-xs font-mono shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-xs font-mono shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 placeholder="Cole o token aqui"
               />
             </div>
@@ -136,7 +137,7 @@ export default function RedefinirSenhaPage() {
                 value={novaSenha}
                 onChange={(e) => setNovaSenha(e.target.value)}
                 aria-describedby="senha-hint"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 placeholder="Mínimo 6 caracteres"
               />
               <p id="senha-hint" className="text-xs text-slate-400 mt-1">
@@ -155,7 +156,7 @@ export default function RedefinirSenhaPage() {
                 required
                 value={confirmarSenha}
                 onChange={(e) => setConfirmarSenha(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 placeholder="Repita a nova senha"
               />
             </div>
@@ -170,7 +171,7 @@ export default function RedefinirSenhaPage() {
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full rounded-lg bg-blue-700 px-4 py-2 font-medium text-white shadow transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-brand-700 px-4 py-2 font-medium text-white shadow transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Redefinindo…' : 'Redefinir senha'}
             </button>
@@ -180,7 +181,7 @@ export default function RedefinirSenhaPage() {
         {/* ── Etapa 3: Sucesso ──────────────────────────── */}
         {etapa === 'sucesso' && (
           <div className="text-center space-y-4">
-            <div role="status" aria-live="polite" className="text-green-600 text-5xl">✓</div>
+            <div role="status" aria-live="polite" className="flex justify-center text-brand-600"><CheckCircle2 size={56} strokeWidth={1.75} /></div>
             <p className="text-slate-700 font-medium">Senha redefinida com sucesso!</p>
             <p className="text-sm text-slate-500">Você já pode fazer login com sua nova senha.</p>
           </div>
@@ -189,9 +190,9 @@ export default function RedefinirSenhaPage() {
         <div className="mt-6 text-center">
           <Link
             to="/login"
-            className="text-xs text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-300 rounded"
           >
-            ← Voltar para o login
+            <ArrowLeft size={13} /> Voltar para o login
           </Link>
         </div>
       </div>

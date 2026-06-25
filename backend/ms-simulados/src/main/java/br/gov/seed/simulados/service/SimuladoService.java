@@ -407,7 +407,9 @@ public class SimuladoService {
         if (questaoIds.isEmpty()) return Map.of();
         String placeholders = questaoIds.stream().map(id -> "?").collect(Collectors.joining(","));
         String sql = "SELECT q.id, d.nome FROM questao q JOIN disciplina d ON d.id = q.disciplina_id WHERE q.id IN (" + placeholders + ")";
-        Object[] params = questaoIds.stream().map(UUID::toString).toArray();
+        // UUID nativo: o driver pgjdbc mapeia java.util.UUID -> uuid.
+        // Passar String quebra o "WHERE id IN (?)" (operador uuid = text inexistente -> bad SQL grammar).
+        Object[] params = questaoIds.toArray();
         Map<UUID, String> resultado = new HashMap<>();
         jdbcTemplate.query(sql, params, rs -> {
             resultado.put(UUID.fromString(rs.getString(1)), rs.getString(2));
@@ -440,7 +442,9 @@ public class SimuladoService {
         if (questaoIds.isEmpty()) return List.of();
 
         String placeholders = questaoIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        Object[] params = questaoIds.stream().map(UUID::toString).toArray();
+        // UUID nativo: o driver pgjdbc mapeia java.util.UUID -> uuid.
+        // Passar String quebra o "WHERE id IN (?)" (operador uuid = text inexistente -> bad SQL grammar).
+        Object[] params = questaoIds.toArray();
 
         // questaoId → [enunciado, explicacao]
         Map<UUID, String[]> questaoInfo = new HashMap<>();

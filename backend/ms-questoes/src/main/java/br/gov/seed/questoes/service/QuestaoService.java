@@ -60,7 +60,7 @@ public class QuestaoService {
     }
 
     public QuestaoResponse buscarPorId(UUID id, boolean incluirGabarito) {
-        Questao q = questaoRepository.findById(id)
+        Questao q = questaoRepository.findByIdComDisciplina(id)
                 .filter(Questao::isAtiva)
                 .orElseThrow(() -> new RuntimeException("Questão não encontrada: " + id));
         return QuestaoResponse.from(q, incluirGabarito);
@@ -235,7 +235,7 @@ public class QuestaoService {
                 .map(QuestaoFavorita::getQuestaoId)
                 .toList();
         if (ids.isEmpty()) return List.of();
-        return questaoRepository.findAllById(ids).stream()
+        return questaoRepository.findAllByIdComDisciplina(ids).stream()
                 .filter(Questao::isAtiva)
                 .map(q -> QuestaoResponse.from(q, true))
                 .collect(Collectors.toList());

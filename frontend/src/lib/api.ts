@@ -574,8 +574,15 @@ export async function responderSimulado(
   })
 }
 
-export async function finalizarSimulado(id: string): Promise<ResultadoSimulado> {
-  const { data } = await api.post<ResultadoSimulado>(`/simulados/${id}/finalizar`)
+export async function finalizarSimulado(
+  id: string,
+  respostas?: Record<number, string>,
+): Promise<ResultadoSimulado> {
+  // Envia as respostas como fonte autoritativa — cobre auto-saves que falharam
+  const body = respostas
+    ? Object.fromEntries(Object.entries(respostas).map(([k, v]) => [String(k), v]))
+    : undefined
+  const { data } = await api.post<ResultadoSimulado>(`/simulados/${id}/finalizar`, body)
   return data
 }
 
@@ -719,5 +726,122 @@ export async function registrarFrequencia(payload: {
   faltas: number
 }): Promise<FrequenciaResumoItem> {
   const { data } = await api.post<FrequenciaResumoItem>('/frequencia/registrar', payload)
+  return data
+}
+
+/* ── Simulados — gestão (professor) ──────────────────────── */
+
+export async function criarSimuladoAleatorio(payload: {
+  titulo: string
+  turmaId?: string | null
+  tempoMinutos: number
+  pontuado: boolean
+  quantidade: number
+  disciplinaId?: string
+  dificuldade?: string
+  nivelEnsino?: string
+}): Promise<Simulado> {
+  const { data } = await api.post<Simulado>('/simulados/aleatorio', payload)
+  return data
+}
+
+export async function atualizarSimulado(id: string, payload: {
+  titulo?: string
+  turmaId?: string | null
+  tempoMinutos?: number
+  pontuado?: boolean
+  dataInicio?: string | null
+  dataFim?: string | null
+}): Promise<Simulado> {
+  const { data } = await api.put<Simulado>(`/simulados/${id}`, payload)
+  return data
+}
+
+export async function desativarSimulado(id: string): Promise<void> {
+  await api.delete(`/simulados/${id}`)
+}
+
+export interface SimuladoQuestaoLink {
+  id: { simuladoId: string; questaoId: string }
+  ordem: number
+}
+
+export async function listarQuestoesSimulado(id: string): Promise<SimuladoQuestaoLink[]> {
+  const { data } = await api.get<SimuladoQuestaoLink[]>(`/simulados/${id}/questoes`)
+  return data
+}
+
+export async function adicionarQuestaoSimulado(id: string, questaoId: string): Promise<void> {
+  await api.post(`/simulados/${id}/questoes`, { questaoId })
+}
+
+export async function removerQuestaoSimulado(id: string, questaoId: string): Promise<void> {
+  await api.delete(`/simulados/${id}/questoes/${questaoId}`)
+}
+
+/* ── Avaliações (ms-relatorios) ─────────────────────────── */
+
+export interface Avaliacao {
+  simulado_id: string
+  titulo: string
+  pontuado: boolean
+  total_tentativas: number
+  nota_media: number
+  taxa_acerto: number
+  criado_em: string
+}
+
+export async function listarAvaliacoes(): Promise<Avaliacao[]> {
+  const { data } = await api.get<Avaliacao[]>('/relatorios/avaliacoes')
+  return data
+}
+
+/* ── Notificações (ms-notificacoes) ─────────────────────── */
+
+export interface Notificacao {
+  id: string
+  userId: string
+  title: string
+  message: string
+  type: string
+  channel: string
+  status: string
+  referenceId?: string | null
+  referenceType?: string | null
+  createdAt: string
+  readAt?: string | null
+}
+
+export async function listarNotificacoes(): Promise<Notificacao[]> {
+  const { data } = await api.get<Notificacao[]>('/notificacoes')
+  return data
+}
+
+export async function listarNotificacoesNaoLidas(): Promise<Notificacao[]> {
+  const { data } = await api.get<Notificacao[]>('/notificacoes/unread')
+  return data
+}
+
+export async function contarNotificacoesNaoLidas(): Promise<number> {
+  const { data } = await api.get<{ total?: number; count?: number; unread?: number }>('/notificacoes/unread/count')
+  return data.total ?? data.count ?? data.unread ?? 0
+}
+
+export async function marcarNotificacaoLida(id: string): Promise<void> {
+  await api.patch(`/notificacoes/${id}/read`)
+}
+
+export async function arquivarNotificacao(id: string): Promise<void> {
+  await api.patch(`/notificacoes/${id}/archive`)
+}
+
+export async function criarNotificacao(payload: {
+  userId: string
+  title: string
+  message: string
+  type?: string
+  channel?: string
+}): Promise<Notificacao> {
+  const { data } = await api.post<Notificacao>('/notificacoes', payload)
   return data
 }

@@ -1,6 +1,9 @@
-import { useState, useRef } from 'react'
+﻿import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, Upload, X, Search, UserCog, UserX, UserCheck } from 'lucide-react'
 import { listarUsuarios, criarUsuario, desativarUsuario, reativarUsuario, importarAlunos, listarInstituicoes, type Usuario, type ImportacaoResult } from '../lib/api'
+import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 
 const PERFIS = ['ALUNO_EM', 'ALUNO_EJA', 'ALUNO_PROF', 'PROFESSOR', 'ADMIN_ESCOLA', 'ADMIN_SEED']
 
@@ -60,46 +63,46 @@ function NovoUsuarioModal({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
           <h2 className="font-bold text-gray-800">Novo usuário</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {erro && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{erro}</p>}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.nome} onChange={set('nome')} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula *</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.matricula} onChange={set('matricula')} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Perfil *</label>
-              <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.perfil} onChange={set('perfil')}>
                 {PERFIS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.cpf} onChange={set('cpf')} placeholder="000.000.000-00" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-              <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.email} onChange={set('email')} />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Senha temporária *</label>
-              <input type="password" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <input type="password" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.senhaTemporaria} onChange={set('senhaTemporaria')} />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Instituição</label>
-              <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.instituicaoId} onChange={set('instituicaoId')}>
                 <option value="">Sem instituição (opcional)</option>
                 {instituicoes.map((i) => (
@@ -111,7 +114,7 @@ function NovoUsuarioModal({ onClose }: { onClose: () => void }) {
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200">Cancelar</button>
             <button type="submit" disabled={mutation.isPending}
-              className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="flex-1 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
               {mutation.isPending ? 'Criando...' : 'Criar usuário'}
             </button>
           </div>
@@ -122,9 +125,9 @@ function NovoUsuarioModal({ onClose }: { onClose: () => void }) {
 }
 
 const perfilBadge: Record<string, string> = {
-  ALUNO_EM: 'bg-blue-50 text-blue-700',
+  ALUNO_EM: 'bg-brand-50 text-brand-700',
   ALUNO_EJA: 'bg-purple-50 text-purple-700',
-  ALUNO_PROF: 'bg-indigo-50 text-indigo-700',
+  ALUNO_PROF: 'bg-azul-50 text-azul-700',
   PROFESSOR: 'bg-amber-50 text-amber-700',
   ADMIN_ESCOLA: 'bg-orange-50 text-orange-700',
   ADMIN_SEED: 'bg-red-50 text-red-700',
@@ -136,7 +139,7 @@ function ImportacaoResultModal({ resultado, onClose }: { resultado: ImportacaoRe
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
           <h2 id="importacao-titulo" className="font-bold text-gray-800">Resultado da Importação</h2>
-          <button onClick={onClose} aria-label="Fechar resultado" className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} aria-label="Fechar resultado" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -181,7 +184,7 @@ function ImportacaoResultModal({ resultado, onClose }: { resultado: ImportacaoRe
               </table>
             </div>
           )}
-          <button onClick={onClose} className="w-full py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+          <button onClick={onClose} className="w-full py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700">
             Fechar
           </button>
         </div>
@@ -242,19 +245,27 @@ export default function GestaoUsuariosPage() {
         <ImportacaoResultModal resultado={importacaoResultado} onClose={() => setImportacaoResultado(null)} />
       )}
 
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Gestão de Usuários</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{usuarios.length} usuários cadastrados</p>
+      <Card className="p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <UserCog size={22} />
+          </span>
+          <div>
+            <p className="text-2xl font-bold text-gray-800 leading-none">{usuarios.length}</p>
+            <p className="text-sm text-gray-500 mt-1">usuários cadastrados</p>
+          </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <input
-            aria-label="Buscar usuários por nome ou matrícula"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
-            placeholder="Buscar por nome ou matrícula..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              aria-label="Buscar usuários por nome ou matrícula"
+              className="border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"
+              placeholder="Buscar por nome ou matrícula..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
           {/* Input file oculto para CSV */}
           <input
             ref={fileInputRef}
@@ -269,30 +280,34 @@ export default function GestaoUsuariosPage() {
             disabled={importando}
             aria-label="Importar usuários via arquivo CSV"
             title="Formato: nome,matricula,cpf,email,perfil,senhaTemporaria,instituicaoId"
-            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50"
           >
-            {importando ? 'Importando…' : '↑ Importar CSV'}
+            <Upload size={15} /> {importando ? 'Importando…' : 'Importar CSV'}
           </button>
           <button
             onClick={() => setNovoUsuario(true)}
             aria-label="Criar novo usuário"
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition whitespace-nowrap"
           >
-            + Novo usuário
+            <Plus size={16} /> Novo usuário
           </button>
         </div>
-      </div>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1,2,3,4,5].map((i) => <div key={i} className="h-14 bg-white rounded-xl border animate-pulse" />)}
+          {[1,2,3,4,5].map((i) => <div key={i} className="h-14 bg-white rounded-2xl border animate-pulse" />)}
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="bg-white rounded-xl p-10 text-center border border-gray-100">
-          <p className="text-gray-400 text-sm">Nenhum usuário encontrado.</p>
-        </div>
+        <Card className="p-4">
+          <EmptyState
+            icon={<UserCog size={30} strokeWidth={1.75} />}
+            title="Nenhum usuário encontrado"
+            description={busca ? 'Tente outro termo de busca.' : 'Cadastre ou importe usuários para começar.'}
+          />
+        </Card>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+        <Card className="overflow-hidden">
           <table className="w-full text-sm" aria-label="Lista de usuários">
             <thead className="bg-gray-50 text-gray-500 text-left">
               <tr>
@@ -323,12 +338,12 @@ export default function GestaoUsuariosPage() {
                   <td className="px-5 py-3">
                     <div className="flex flex-col gap-0.5">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
-                        u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        u.ativo ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-500'
                       }`} aria-label={u.ativo ? 'Usuário ativo' : 'Usuário inativo'}>
                         {u.ativo ? 'Ativo' : 'Inativo'}
                       </span>
                       {u.primeiroAcesso && (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 w-fit"
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-gold-400/20 text-gold-600 w-fit"
                               aria-label="Usuário aguardando primeiro acesso">
                           Aguardando 1º acesso
                         </span>
@@ -341,18 +356,18 @@ export default function GestaoUsuariosPage() {
                         onClick={() => desativar.mutate(u.id)}
                         disabled={desativar.isPending}
                         aria-label={`Desativar usuário ${u.nome}`}
-                        className="text-red-500 hover:underline text-xs disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-red-300 rounded"
+                        className="inline-flex items-center gap-1 text-red-500 hover:underline text-xs disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-red-300 rounded"
                       >
-                        Desativar
+                        <UserX size={13} /> Desativar
                       </button>
                     ) : (
                       <button
                         onClick={() => reativar.mutate(u.id)}
                         disabled={reativar.isPending}
                         aria-label={`Reativar usuário ${u.nome}`}
-                        className="text-green-600 hover:underline text-xs disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-green-300 rounded"
+                        className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-brand-300 rounded"
                       >
-                        Reativar
+                        <UserCheck size={13} /> Reativar
                       </button>
                     )}
                   </td>
@@ -360,7 +375,7 @@ export default function GestaoUsuariosPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   )

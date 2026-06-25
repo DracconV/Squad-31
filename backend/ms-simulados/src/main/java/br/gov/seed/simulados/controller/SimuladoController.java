@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/simulados")
 @RequiredArgsConstructor
@@ -197,6 +199,7 @@ public class SimuladoController {
     @PostMapping("/{id}/finalizar")
     public ResponseEntity<ResultadoResponse> finalizar(
             @Parameter(description = "UUID do simulado") @PathVariable UUID id,
+            @RequestBody(required = false) Map<String, String> respostasCliente,
             HttpServletRequest request,
             HttpSession session) {
 
@@ -208,6 +211,20 @@ public class SimuladoController {
         UUID alunoId = extrairAlunoId(request);
         if (!alunoId.equals(sessao.getAlunoId())) {
             return ResponseEntity.status(403).build();
+        }
+
+        // Respostas enviadas no envio final são autoritativas — cobrem auto-saves
+        // (PUT /responder) que possam ter falhado por rede durante a prova.
+        if (respostasCliente != null) {
+            respostasCliente.forEach((indice, alternativaId) -> {
+                if (alternativaId != null && !alternativaId.isBlank()) {
+                    try {
+                        sessao.getRespostas().put(Integer.parseInt(indice), alternativaId);
+                    } catch (NumberFormatException ignorado) {
+                        log.warn("Índice de resposta inválido no finalizar: {}", indice);
+                    }
+                }
+            });
         }
 
         ResultadoResponse resultado = simuladoService.finalizar(id, alunoId, sessao);

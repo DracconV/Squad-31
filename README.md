@@ -44,6 +44,7 @@ Squad-31/
 │   ├── ms-questoes/          # Java — Banco de questões + categorização IA
 │   ├── ms-simulados/         # Java — Criação, auto-save Redis, cálculo de notas
 │   ├── ms-relatorios/        # Java — Dashboards + diagnóstico IA
+│   ├── ms-notificacoes/      # Java — Notificações institucionais
 │   ├── ms-cursos/            # Go  — Módulos, agendamento, inscrições
 │   └── ms-certificados/      # Go  — Geração PDF, QR Code verificável
 ├── analytics-ia/             # Python — FastAPI + Claude API (diagnóstico adaptativo)
@@ -90,40 +91,35 @@ Comunicação assíncrona via **Outbox Pattern**: o `ms-simulados` persiste o ev
 
 ## 🚀 Como Rodar Localmente
 
-### Pré-requisitos
-- Docker Desktop instalado e rodando
-- Java 21+
-- Node.js 20+
-- Go 1.22+
-- Python 3.11+
-
-### 1. Subir a infraestrutura
-```bash
 cd infra
 cp .env.example .env
-docker-compose up -d
-```
+docker compose up -d --build
 
-### 2. Rodar um microserviço Java (exemplo)
-```bash
-cd backend/ms-autenticacao
-./mvnw spring-boot:run
-```
 
-### 3. Rodar o frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+🔗 URLs
+Aplicação
+Serviço	URL	Credenciais
+Frontend	http://localhost	—
+API Gateway	http://localhost:8080	JWT
 
-| Serviço | URL | Credenciais |
-|---|---|---|
-| Frontend | http://localhost:5173 | — |
-| MinIO Console | http://localhost:9001 | seed_minio_user / seed_minio_pass |
-| Grafana | http://localhost:3000 | admin / admin |
-| Jaeger UI | http://localhost:16686 | — |
+Observabilidade / Infra
+Serviço	URL	Credenciais
+Jaeger (traces)	http://localhost:16686	—
+Grafana	http://localhost:3000	admin / admin
+Prometheus	http://localhost:9090	—
+Kafka UI	http://localhost:8090	—
+MinIO Console	http://localhost:9001	seed_minio_user / seed_minio_pass
 
+👤 Usuários de teste
+Senha para todos: seed@2025
+
+Perfil	Matrícula
+Admin SEED	admin
+Admin Escola	adminescola
+Professor	professor01
+Aluno EM	aluno-em
+Aluno EJA	aluno-eja
+Aluno Prof.	aluno-prof
 ---
 
 ## 📡 Principais Endpoints
@@ -136,6 +132,9 @@ npm run dev
 | POST | `/simulados` | Criar simulado pontuado | JWT |
 | POST | `/simulados/{id}/responder` | Auto-save de resposta | JWT |
 | POST | `/simulados/{id}/finalizar` | Finalizar e calcular nota | JWT |
+| GET | `/api/notificacoes` | Listar notificações institucionais do usuário | JWT |
+| GET | `/api/notificacoes/unread/count` | Contar notificações não lidas | JWT |
+| POST | `/api/notificacoes/destino` | Criar notificações para destinatários específicos | JWT (admin) |
 | GET | `/alunos/{id}/diagnostico` | Mapa de lacunas por IA | JWT |
 | GET | `/turmas/{id}/desempenho` | Desempenho agregado da turma | JWT |
 | GET | `/certificados/{aluno}/{curso}` | Download do certificado PDF | JWT |

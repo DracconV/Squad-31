@@ -8,11 +8,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
 
     Page<Questao> findByAtivaTrue(Pageable pageable);
+
+    // JOIN FETCH da disciplina — necessário em buscas unitárias/por-lista porque
+    // disciplina é LAZY e open-in-view=false (acesso fora da sessão → LazyInitializationException).
+    @Query("SELECT q FROM Questao q JOIN FETCH q.disciplina WHERE q.id = :id")
+    Optional<Questao> findByIdComDisciplina(@Param("id") UUID id);
+
+    @Query("SELECT q FROM Questao q JOIN FETCH q.disciplina WHERE q.id IN :ids")
+    List<Questao> findAllByIdComDisciplina(@Param("ids") List<UUID> ids);
 
     Page<Questao> findByDisciplina_IdAndAtivaTrue(UUID disciplinaId, Pageable pageable);
 

@@ -73,4 +73,15 @@ public class RelatorioDTO {
             @JsonProperty("municipios") List<PainelMunicipioItem> municipios,
             @JsonProperty("gerado_em") LocalDateTime geradoEm
     ) {}
+
+    /** Item da lista de avaliações (simulados) com estatísticas agregadas da rede. */
+    public record AvaliacaoItem(
+            @JsonProperty("simulado_id") UUID simuladoId,
+            String titulo,
+            boolean pontuado,
+            @JsonProperty("total_tentativas") long totalTentativas,
+            @JsonProperty("nota_media") BigDecimal notaMedia,
+            @JsonProperty("taxa_acerto") double taxaAcerto,
+            @JsonProperty("criado_em") LocalDateTime criadoEm
+    ) {}
 }

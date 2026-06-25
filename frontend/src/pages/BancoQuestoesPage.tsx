@@ -1,61 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  Download, Star, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Check, X, Database, ListFilter,
+} from 'lucide-react'
 import { api, favoritarQuestao, desfavoritarQuestao, listarQuestoesFavoritas, getGabaritoQuestao, type Gabarito } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
-
-/* ── Renderizador de Markdown simples ───────────────────────── */
-
-function MarkdownText({ text }: { text: string }) {
-  if (!text) return null
-
-  // Divide o texto em segmentos: imagens, negrito, itálico e texto normal
-  const segments: React.ReactNode[] = []
-  let remaining = text
-  let key = 0
-
-  while (remaining.length > 0) {
-    // Imagem: ![alt](url)
-    const imgMatch = remaining.match(/^([\s\S]*?)!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/)
-    if (imgMatch) {
-      if (imgMatch[1]) segments.push(<span key={key++}>{renderInline(imgMatch[1])}</span>)
-      segments.push(
-        <img
-          key={key++}
-          src={imgMatch[3]}
-          alt={imgMatch[2] || 'imagem'}
-          className="max-w-full rounded my-2 mx-auto block"
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
-      )
-      remaining = remaining.slice(imgMatch[0].length)
-      continue
-    }
-
-    // Sem mais imagens — renderiza o resto
-    segments.push(<span key={key++}>{renderInline(remaining)}</span>)
-    break
-  }
-
-  return <>{segments}</>
-}
-
-// Renderiza negrito e itálico dentro de um trecho de texto
-function renderInline(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = []
-  const regex = /(\*\*([^*]+)\*\*)|(_([^_]+)_)/g
-  let last = 0
-  let match: RegExpExecArray | null
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) parts.push(text.slice(last, match.index))
-    if (match[1]) parts.push(<strong key={match.index}>{match[2]}</strong>)
-    else if (match[3]) parts.push(<em key={match.index}>{match[4]}</em>)
-    last = match.index + match[0].length
-  }
-  if (last < text.length) parts.push(text.slice(last))
-  return parts
-}
+import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
+import MarkdownText from '../components/MarkdownText'
 
 /* ── Tipos ──────────────────────────────────────────────────── */
 
@@ -207,44 +159,48 @@ export default function BancoQuestoesPage() {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Banco de Questões</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {stats ? (
-              <span>
-                <strong>{stats.total.toLocaleString('pt-BR')}</strong> questões disponíveis
-              </span>
-            ) : (
-              'Carregando estatísticas...'
-            )}
-          </p>
+      <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <Database size={22} />
+          </span>
+          <div>
+            <p className="text-2xl font-bold text-gray-800 leading-none">
+              {stats ? stats.total.toLocaleString('pt-BR') : '—'}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">questões no banco</p>
+          </div>
         </div>
         {isAdmin && (
           <button
             onClick={handleImportar}
             disabled={importando}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-60 transition-colors"
           >
-            {importando ? '⏳ Importando...' : '⬇️ Importar ENEM'}
+            <Download size={16} className={importando ? 'animate-pulse' : ''} />
+            {importando ? 'Importando…' : 'Importar ENEM'}
           </button>
         )}
-      </div>
+      </Card>
 
       {importMsg && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+        <div className="bg-azul-50 border border-azul-100 rounded-lg p-3 text-sm text-azul-700">
           {importMsg}
         </div>
       )}
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-wrap gap-3 items-end">
+      <Card className="p-4 flex flex-wrap gap-3 items-end">
+        <div className="flex items-center gap-2 text-gray-500 mr-1 mb-2">
+          <ListFilter size={16} />
+          <span className="text-sm font-medium">Filtros</span>
+        </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Disciplina</label>
           <select
             value={disciplinaId}
             onChange={(e) => { setDisciplinaId(e.target.value); handleFiltro() }}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Todas</option>
             {disciplinas.map((d) => (
@@ -258,7 +214,7 @@ export default function BancoQuestoesPage() {
           <select
             value={dificuldade}
             onChange={(e) => { setDificuldade(e.target.value); handleFiltro() }}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Todas</option>
             <option value="FACIL">Fácil</option>
@@ -270,20 +226,22 @@ export default function BancoQuestoesPage() {
         {(disciplinaId || dificuldade) && (
           <button
             onClick={() => { setDisciplinaId(''); setDificuldade(''); setPage(0) }}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
+            className="text-sm text-gray-500 hover:text-gray-700 underline mb-2"
           >
             Limpar filtros
           </button>
         )}
 
-        <div className="ml-auto text-sm text-gray-500">
+        <div className="ml-auto text-sm text-gray-500 mb-2">
           {totalElements > 0 && `${totalElements.toLocaleString('pt-BR')} resultado(s)`}
         </div>
-      </div>
+      </Card>
 
       {/* Lista de questões */}
       {isLoading && (
-        <div className="text-center py-12 text-gray-400">Carregando questões...</div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+        </div>
       )}
 
       {isError && (
@@ -293,15 +251,17 @@ export default function BancoQuestoesPage() {
       )}
 
       {!isLoading && !isError && questoes.length === 0 && (
-        <div className="bg-white rounded-xl p-10 shadow-sm border border-gray-100 text-center text-gray-400">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="font-medium">Nenhuma questão encontrada</p>
-          <p className="text-sm mt-1">
-            {stats?.total === 0
-              ? 'O banco ainda está vazio. Use o botão "Importar ENEM" para popular.'
-              : 'Tente ajustar os filtros.'}
-          </p>
-        </div>
+        <Card className="p-4">
+          <EmptyState
+            icon={<Database size={30} strokeWidth={1.75} />}
+            title="Nenhuma questão encontrada"
+            description={
+              stats?.total === 0
+                ? 'O banco ainda está vazio. Use o botão "Importar ENEM" para popular.'
+                : 'Tente ajustar os filtros de disciplina ou dificuldade.'
+            }
+          />
+        </Card>
       )}
 
       <div className="space-y-3">
@@ -324,9 +284,9 @@ export default function BancoQuestoesPage() {
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
           >
-            ← Anterior
+            <ChevronLeft size={15} /> Anterior
           </button>
           <span className="text-sm text-gray-600">
             Página {page + 1} de {totalPages}
@@ -334,9 +294,9 @@ export default function BancoQuestoesPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
           >
-            Próxima →
+            Próxima <ChevronRight size={15} />
           </button>
         </div>
       )}
@@ -362,8 +322,8 @@ function QuestaoCard({
   onToggleFavorito: () => void
 }) {
   const dificuldadeCor = {
-    FACIL: 'bg-green-100 text-green-700',
-    MEDIA: 'bg-yellow-100 text-yellow-700',
+    FACIL: 'bg-brand-50 text-brand-700',
+    MEDIO: 'bg-gold-400/20 text-gold-600',
     DIFICIL: 'bg-red-100 text-red-700',
   }[questao.dificuldade] ?? 'bg-gray-100 text-gray-600'
 
@@ -394,12 +354,12 @@ function QuestaoCard({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Header clicável + botão de favoritar */}
       <div className="flex items-start">
         <button
           onClick={onToggle}
-          className="flex-1 text-left p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors min-w-0"
+          className="flex-1 text-left p-4 flex items-start gap-3 hover:bg-gray-50/70 transition-colors min-w-0"
         >
           <span className="text-xs font-bold text-gray-400 mt-0.5 min-w-[2rem]">
             #{numero}
@@ -408,7 +368,7 @@ function QuestaoCard({
             <p className="text-sm text-gray-800 line-clamp-2 overflow-hidden">{questao.enunciado.replace(/!\[[^\]]*\]\([^)]+\)/g, '[imagem]')}</p>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               {questao.disciplina && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-azul-50 text-azul-700 px-2 py-0.5 rounded-full font-medium">
                   {questao.disciplina}
                 </span>
               )}
@@ -420,23 +380,23 @@ function QuestaoCard({
               </span>
             </div>
           </div>
-          <span className="text-gray-400 text-xs mt-0.5">{expandida ? '▲' : '▼'}</span>
+          <span className="text-gray-400 mt-0.5">{expandida ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span>
         </button>
         <button
           onClick={onToggleFavorito}
           aria-label={favorita ? 'Remover dos favoritos' : 'Marcar para revisão'}
           aria-pressed={favorita}
           title={favorita ? 'Remover da revisão' : 'Marcar para revisão'}
-          className={`shrink-0 p-4 text-xl transition-colors ${favorita ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+          className={`shrink-0 p-4 transition-colors ${favorita ? 'text-gold-500' : 'text-gray-300 hover:text-gold-500'}`}
         >
-          {favorita ? '★' : '☆'}
+          <Star size={20} fill={favorita ? 'currentColor' : 'none'} />
         </button>
       </div>
 
       {/* Conteúdo expandido */}
       {expandida && (
         <div className="border-t border-gray-100 p-4 space-y-3">
-          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div className="text-sm text-gray-700 leading-relaxed">
             <MarkdownText text={questao.enunciado} />
           </div>
 
@@ -447,12 +407,12 @@ function QuestaoCard({
                 const isCorreta = gabarito?.alternativaCorretaId === alt.id
                 const isSelecionada = selecionada === alt.id
                 const isSelecionadaErrada = gabarito != null && isSelecionada && !isCorreta
-                let cor = 'bg-gray-50 border-gray-100 hover:border-blue-300'
+                let cor = 'bg-gray-50 border-gray-100 hover:border-brand-300'
                 if (gabarito) {
-                  if (isCorreta) cor = 'bg-green-50 border-green-300'
+                  if (isCorreta) cor = 'bg-brand-50 border-brand-300'
                   else if (isSelecionadaErrada) cor = 'bg-red-50 border-red-300'
                 } else if (isSelecionada) {
-                  cor = 'bg-blue-50 border-blue-400 ring-1 ring-blue-300'
+                  cor = 'bg-brand-50 border-brand-400 ring-1 ring-brand-300'
                 }
                 return (
                   <button
@@ -460,15 +420,15 @@ function QuestaoCard({
                     type="button"
                     disabled={gabarito != null}
                     onClick={() => setSelecionada(alt.id)}
-                    className={`w-full text-left flex gap-2 p-2.5 rounded-lg text-sm border transition disabled:cursor-default ${cor}`}
+                    className={`w-full text-left flex gap-2 items-center p-2.5 rounded-lg text-sm border transition disabled:cursor-default ${cor}`}
                   >
                     <span className={`font-bold min-w-[1.2rem] ${
-                      isCorreta ? 'text-green-600' : isSelecionadaErrada ? 'text-red-500' : isSelecionada ? 'text-blue-600' : 'text-gray-400'
+                      isCorreta ? 'text-brand-600' : isSelecionadaErrada ? 'text-red-500' : isSelecionada ? 'text-brand-600' : 'text-gray-400'
                     }`}>
                       {letras[i] ?? alt.ordem})
                     </span>
                     <span className="text-gray-700">{alt.texto}</span>
-                    {gabarito && isCorreta && <span className="ml-auto text-green-600 font-medium text-xs">✓ Correta</span>}
+                    {gabarito && isCorreta && <span className="ml-auto inline-flex items-center gap-1 text-brand-600 font-medium text-xs"><Check size={14} /> Correta</span>}
                     {isSelecionadaErrada && <span className="ml-auto text-red-500 font-medium text-xs">Sua resposta</span>}
                   </button>
                 )
@@ -479,13 +439,15 @@ function QuestaoCard({
                   type="button"
                   onClick={verificar}
                   disabled={!selecionada || verificando}
-                  className="mt-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                  className="mt-1 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
                 >
                   {verificando ? 'Verificando…' : 'Verificar resposta'}
                 </button>
               ) : (
-                <p className={`text-sm font-medium ${gabarito.alternativaCorretaId === selecionada ? 'text-green-600' : 'text-red-500'}`}>
-                  {gabarito.alternativaCorretaId === selecionada ? '✓ Você acertou!' : '✗ Resposta incorreta.'}
+                <p className={`inline-flex items-center gap-1.5 text-sm font-medium ${gabarito.alternativaCorretaId === selecionada ? 'text-brand-600' : 'text-red-500'}`}>
+                  {gabarito.alternativaCorretaId === selecionada
+                    ? <><Check size={16} /> Você acertou!</>
+                    : <><X size={16} /> Resposta incorreta.</>}
                 </p>
               )}
             </div>
@@ -493,13 +455,15 @@ function QuestaoCard({
 
           {/* Explicação: vem da questão (professor) ou do gabarito revelado (aluno) */}
           {(questao.explicacao || gabarito?.explicacao) && (
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-900 mt-3">
-              <span className="font-semibold">💡 Explicação: </span>
+            <div className="bg-gold-400/10 border border-gold-400/30 rounded-lg p-3 text-sm text-gray-700 mt-3">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-gold-600">
+                <Lightbulb size={15} /> Explicação:
+              </span>{' '}
               <span className="whitespace-pre-wrap">{questao.explicacao ?? gabarito?.explicacao}</span>
             </div>
           )}
         </div>
       )}
-    </div>
+    </Card>
   )
 }

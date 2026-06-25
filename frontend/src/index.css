@@ -1,9 +1,47 @@
 @import "tailwindcss";
 
-/* Variáveis e estilos base do SEED Educa */
+/* ===== Fonte moderna ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ======================================================
+   Tema — cores institucionais de Sergipe
+   verde (bandeira) · azul · amarelo (estrelas) · branco
+   Tailwind v4: gera utilitários bg-brand-600, text-gold-500, etc.
+   ====================================================== */
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Verde Sergipe (marca principal) */
+  --color-brand-50:  #ecf8f1;
+  --color-brand-100: #d2efde;
+  --color-brand-200: #a7dfbe;
+  --color-brand-300: #6fca97;
+  --color-brand-400: #38ad6f;
+  --color-brand-500: #169154;
+  --color-brand-600: #0c7644;
+  --color-brand-700: #0a5e37;
+  --color-brand-800: #094b2d;
+  --color-brand-900: #073c25;
+
+  /* Azul Sergipe (secundário / links) */
+  --color-azul-50:  #eaf3fb;
+  --color-azul-100: #cfe3f6;
+  --color-azul-300: #79b0e3;
+  --color-azul-500: #1f76d2;
+  --color-azul-600: #1560b0;
+  --color-azul-700: #114e90;
+
+  /* Amarelo das estrelas (destaque) */
+  --color-gold-300: #ffe07a;
+  --color-gold-400: #ffd23f;
+  --color-gold-500: #f5c000;
+  --color-gold-600: #cf9f00;
+}
+
+/* ===== Base ===== */
 :root {
   color-scheme: light;
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -16,6 +54,52 @@ body,
 }
 
 body {
-  background-color: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
+  background-color: #f6f8f7; /* branco levemente esverdeado */
+  color: #0f1f17;
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+/* Transições suaves em elementos interativos */
+button, a, input, select, textarea {
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease,
+              box-shadow .15s ease, transform .12s ease, opacity .15s ease;
+}
+
+/* Foco acessível e moderno */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* Seleção de texto na cor da marca */
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+
+/* Scrollbar discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3d3ca transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: #c3d3ca;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #a9bfb3; background-clip: content-box; }
+
+/* Utilitário de card padrão do app */
+@utility card {
+  background: #fff;
+  border: 1px solid #eef2f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(16,40,28,.04), 0 8px 24px -12px rgba(16,40,28,.12);
 }

@@ -1,15 +1,17 @@
+import { MapPin } from 'lucide-react'
+import { Card } from '../components/Card'
 import { EmptyState } from '../components/EmptyState'
 
-// TODO: implementar LocalProvaPage
 export default function LocalProvaPage() {
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <Card className="p-4">
         <EmptyState
-          title="Em desenvolvimento"
-          description="Esta seção será implementada em breve."
+          icon={<MapPin size={30} strokeWidth={1.75} />}
+          title="Local de prova em breve"
+          description="Aqui você poderá consultar o endereço, a sala e o horário das suas provas presenciais assim que forem agendadas pela sua escola."
         />
-      </div>
+      </Card>
     </div>
   )
 }

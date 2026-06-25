@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Bar,
@@ -192,7 +192,7 @@ function MetricCard({
   tone: 'blue' | 'green' | 'yellow' | 'red'
 }) {
   const tones = {
-    blue: 'from-blue-500 to-indigo-500',
+    blue: 'from-brand-500 to-brand-700',
     green: 'from-emerald-500 to-teal-400',
     yellow: 'from-amber-400 to-yellow-300',
     red: 'from-rose-500 to-pink-500',
@@ -212,10 +212,10 @@ function MetricCard({
 
 function HeroPanel({ mode }: { mode: 'aluno' | 'gestao' }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-blue-100 bg-white shadow-[0_24px_70px_rgba(28,63,110,0.12)]">
+    <section className="overflow-hidden rounded-lg border border-brand-100 bg-white shadow-[0_24px_70px_rgba(28,63,110,0.12)]">
       <div className="grid min-h-[270px] grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
         <div className="min-w-0 p-7 sm:p-9">
-          <span className="inline-flex rounded-full bg-blue-600 px-4 py-1.5 text-xs font-bold uppercase text-white shadow-lg shadow-blue-500/20">
+          <span className="inline-flex rounded-full bg-brand-600 px-4 py-1.5 text-xs font-bold uppercase text-white shadow-lg shadow-brand-500/20">
             {mode === 'aluno' ? 'Portal do aluno' : 'Gestão pedagógica'}
           </span>
           <h2 className="mt-6 max-w-3xl break-words text-3xl font-bold leading-tight tracking-normal text-slate-950 sm:text-4xl">
@@ -233,14 +233,14 @@ function HeroPanel({ mode }: { mode: 'aluno' | 'gestao' }) {
           <div className="absolute inset-0 bg-[linear-gradient(135deg,#e5ff25_0_42%,#2f63df_42%_100%)]" />
           <div className="absolute right-8 top-10 h-24 w-24 rotate-12 rounded-[28px] bg-[#ff3345] shadow-[0_18px_35px_rgba(239,68,68,0.35)] ring-4 ring-white/70" />
           <div className="absolute bottom-8 left-10 rounded-lg bg-slate-950 p-5 text-white shadow-[0_22px_55px_rgba(15,23,42,0.42)] ring-8 ring-white/75">
-            <p className="text-xs font-bold uppercase text-blue-200">SEED Educa</p>
+            <p className="text-xs font-bold uppercase text-brand-200">SEED Educa</p>
             <p className="mt-4 text-4xl font-bold">7,4</p>
             <p className="text-sm text-slate-200">média consolidada</p>
             <div className="mt-5 flex gap-2">
               {[72, 84, 66].map((height) => (
                 <span key={height} className="flex h-16 w-8 items-end rounded-full bg-white/10 p-1">
                   <span
-                    className="w-full rounded-full bg-gradient-to-t from-blue-500 via-cyan-200 to-yellow-300"
+                    className="w-full rounded-full bg-gradient-to-t from-brand-500 via-cyan-200 to-yellow-300"
                     style={{ height: `${height}%` }}
                   />
                 </span>
@@ -422,7 +422,7 @@ function GestaoNotas() {
         <select
           value={turmaId}
           onChange={(event) => setSelectedTurmaId(event.target.value)}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm outline-none focus:border-blue-500 md:w-80"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm outline-none focus:border-brand-500 md:w-80"
         >
           {turmas.map((turmaItem) => (
             <option key={turmaItem.id} value={turmaItem.id}>

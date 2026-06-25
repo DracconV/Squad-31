@@ -6,11 +6,11 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono&display=swap');
 
 :root {
-  /* Cores */
-  --primary:      #1C3F6E;
-  --primary-dark: #15305A;
-  --accent:       #2C6DB5;
-  --accent-light: #EBF2FB;
+  /* Cores — institucional Sergipe (verde / azul / amarelo) */
+  --primary:      #0c7644;
+  --primary-dark: #0a5e37;
+  --accent:       #1f76d2;
+  --accent-light: #eaf3fb;
 
   --success: #2E7D32;
   --error:   #B00020;
@@ -25,11 +25,11 @@
   --text-muted:   #666666;
   --text-inverse: #FFFFFF;
 
-  /* Sidebar */
-  --sidebar-bg:          #1A2A44;
-  --sidebar-text:        #CBD5E1;
+  /* Sidebar — verde Sergipe */
+  --sidebar-bg:          #0a5e37;
+  --sidebar-text:        #cfe6d8;
   --sidebar-text-active: #FFFFFF;
-  --sidebar-item-active: #2C6DB5;
+  --sidebar-item-active: #0c7644;
   --sidebar-width:       260px;
 
   /* Tipografia */

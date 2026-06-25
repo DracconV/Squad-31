@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+﻿import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { api } from '../lib/api'
@@ -75,7 +75,7 @@ export default function PrimeiroAcessoPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-100">
             <span className="text-2xl">🔐</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Primeiro acesso</h1>
@@ -95,7 +95,7 @@ export default function PrimeiroAcessoPage() {
               minLength={6}
               value={novaSenha}
               onChange={(e) => setNovaSenha(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
@@ -109,7 +109,7 @@ export default function PrimeiroAcessoPage() {
               required
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
               placeholder="Repita a nova senha"
             />
           </div>
@@ -126,7 +126,7 @@ export default function PrimeiroAcessoPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-700 px-4 py-2 font-medium text-white shadow transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-700 px-4 py-2 font-medium text-white shadow transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? 'Salvando...' : 'Criar senha e entrar'}
           </button>

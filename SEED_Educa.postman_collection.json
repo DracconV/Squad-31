@@ -27,6 +27,18 @@
           "}"
         ]
       }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Considera sucesso qualquer 2xx (200 OK, 201 Created, 204 No Content).",
+          "pm.test('Sucesso (2xx) — HTTP ' + pm.response.code, function () {",
+          "  pm.expect(pm.response.code, 'status').to.be.within(200, 299);",
+          "});"
+        ]
+      }
     }
   ],
   "variable": [
@@ -136,6 +148,10 @@
       "item": [
         {
           "name": "Criar usuário",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) { pm.collectionVariables.set('usuarioId', j.id); pm.collectionVariables.set('alunoId', j.id); }"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -145,6 +161,15 @@
         },
         {
           "name": "Listar usuários",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) {",
+            "  pm.collectionVariables.set('usuarioId', arr[0].id);",
+            "  const aluno = arr.find(u => (u.perfil||'').indexOf('ALUNO') === 0) || arr[0];",
+            "  pm.collectionVariables.set('alunoId', aluno.id);",
+            "  console.log('usuarioId =', arr[0].id);",
+            "}"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -206,6 +231,10 @@
       "item": [
         {
           "name": "Listar instituições",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set('instituicaoId', arr[0].id); }"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -236,6 +265,10 @@
       "item": [
         {
           "name": "Criar turma",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) pm.collectionVariables.set('turmaId', j.id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -253,6 +286,10 @@
         },
         {
           "name": "Listar turmas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set('turmaId', arr[0].id); }"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -347,6 +384,10 @@
         },
         {
           "name": "[Admin] Listar todos os slots",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set('slotId', arr[0].id); }"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -394,6 +435,15 @@
       "item": [
         {
           "name": "Listar questões (filtros)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const page = pm.response.json();",
+            "const q = page && page.content && page.content[0];",
+            "if (q) {",
+            "  pm.collectionVariables.set('questaoId', q.id);",
+            "  if (q.alternativas && q.alternativas[0]) pm.collectionVariables.set('alternativaId', q.alternativas[0].id);",
+            "  console.log('questaoId =', q.id);",
+            "}"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -513,6 +563,10 @@
         },
         {
           "name": "Listar disciplinas",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set('disciplinaId', arr[0].id); }"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -543,6 +597,13 @@
       "item": [
         {
           "name": "Listar simulados disponíveis",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) {",
+            "  pm.collectionVariables.set('simuladoId', arr[0].id);",
+            "  if (arr[0].questaoIds && arr[0].questaoIds[0]) pm.collectionVariables.set('questaoId', arr[0].questaoIds[0]);",
+            "}"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -624,21 +685,32 @@
         },
         {
           "name": "Criar simulado (professor)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) pm.collectionVariables.set('simuladoId', j.id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado de Teste\",\n  \"turmaId\": \"{{turmaId}}\",\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"dataInicio\": null,\n  \"dataFim\": null\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado de Teste\",\n  \"turmaId\": null,\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"dataInicio\": null,\n  \"dataFim\": null\n}" },
             "url": { "raw": "{{baseUrl}}/simulados", "host": ["{{baseUrl}}"], "path": ["simulados"] }
           }
         },
         {
           "name": "Criar simulado ALEATÓRIO (questões sorteadas)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) {",
+            "  pm.collectionVariables.set('simuladoId', j.id);",
+            "  if (j.questaoIds && j.questaoIds[0]) pm.collectionVariables.set('questaoId', j.questaoIds[0]);",
+            "}"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado Aleatório de Matemática\",\n  \"turmaId\": \"{{turmaId}}\",\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"dataInicio\": null,\n  \"dataFim\": null,\n  \"quantidade\": 10,\n  \"disciplinaId\": \"{{disciplinaId}}\",\n  \"dificuldade\": \"MEDIO\",\n  \"nivelEnsino\": \"MEDIO\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Simulado Aleatório\",\n  \"turmaId\": null,\n  \"tempoMinutos\": 60,\n  \"pontuado\": true,\n  \"quantidade\": 10\n}" },
             "url": { "raw": "{{baseUrl}}/simulados/aleatorio", "host": ["{{baseUrl}}"], "path": ["simulados", "aleatorio"] },
-            "description": "disciplinaId, dificuldade e nivelEnsino são opcionais — remova do corpo para sortear entre todas as questões."
+            "description": "Sorteia entre TODAS as questões. Para filtrar, adicione ao corpo: \"disciplinaId\", \"dificuldade\" (FACIL|MEDIO|DIFICIL) e/ou \"nivelEnsino\". Requer que o ENEM já tenha sido importado."
           }
         },
         {
@@ -832,10 +904,44 @@
       ]
     },
     {
+      "name": "9b. Frequência / Faltas (ms-autenticacao)",
+      "item": [
+        {
+          "name": "Registrar/atualizar frequência (professor)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"alunoId\": \"{{alunoId}}\",\n  \"turmaId\": \"{{turmaId}}\",\n  \"disciplina\": \"Matemática\",\n  \"totalAulas\": 40,\n  \"faltas\": 3\n}" },
+            "url": { "raw": "{{baseUrl}}/frequencia/registrar", "host": ["{{baseUrl}}"], "path": ["frequencia", "registrar"] }
+          }
+        },
+        {
+          "name": "Resumo de frequência do aluno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/frequencia/aluno/{{alunoId}}/resumo", "host": ["{{baseUrl}}"], "path": ["frequencia", "aluno", "{{alunoId}}", "resumo"] }
+          }
+        },
+        {
+          "name": "Frequência agregada da turma (professor)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/frequencia/turma/{{turmaId}}", "host": ["{{baseUrl}}"], "path": ["frequencia", "turma", "{{turmaId}}"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "10. Cursos (ms-cursos)",
       "item": [
         {
           "name": "Listar cursos (público)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set('cursoId', arr[0].id); }"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],
@@ -852,6 +958,10 @@
         },
         {
           "name": "Criar curso (professor/admin)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) pm.collectionVariables.set('cursoId', j.id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -886,6 +996,10 @@
         },
         {
           "name": "Criar módulo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) pm.collectionVariables.set('moduloId', j.id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -920,6 +1034,10 @@
         },
         {
           "name": "Inscrever em curso",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j && j.id) pm.collectionVariables.set('inscricaoId', j.id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -929,6 +1047,13 @@
         },
         {
           "name": "Minhas inscrições",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const arr = pm.response.json();",
+            "if (Array.isArray(arr) && arr.length) {",
+            "  pm.collectionVariables.set('inscricaoId', arr[0].id);",
+            "  if (arr[0].cursoId) pm.collectionVariables.set('cursoId', arr[0].cursoId);",
+            "}"
+          ] } }],
           "request": {
             "method": "GET",
             "header": [],

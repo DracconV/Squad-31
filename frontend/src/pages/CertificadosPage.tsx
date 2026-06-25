@@ -1,9 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import { api, buscarCertificado, listarCursos, type Certificado, type Curso } from '../lib/api'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBanner } from '../components/StatusBanner'
+import { Card } from '../components/Card'
+import { Award, Download, ShieldCheck, ExternalLink } from 'lucide-react'
 
 /* ── Card de certificado ──────────────────────────────────── */
 
@@ -31,19 +33,25 @@ function CertificadoCard({ cert, curso, alunoId }: { cert: Certificado; curso: C
   }
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-800">{curso.nome}</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Emitido em {emitidoEm}</p>
+    <Card hover className="p-5 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-400/20 text-gold-600">
+            <Award size={20} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-gray-800 truncate">{curso.nome}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Emitido em {emitidoEm}</p>
+          </div>
         </div>
         <span
-          className={`text-xs font-medium px-2 py-1 rounded-full ${
+          className={`shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
             cert.valido
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-brand-50 text-brand-700'
               : 'bg-red-100 text-red-600'
           }`}
         >
+          {cert.valido && <ShieldCheck size={13} />}
           {cert.valido ? 'Válido' : 'Revogado'}
         </span>
       </div>
@@ -53,10 +61,10 @@ function CertificadoCard({ cert, curso, alunoId }: { cert: Certificado; curso: C
           <button
             onClick={handleDownload}
             disabled={baixando}
-            className="w-full py-2 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium
-                       hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium
+                       hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {baixando ? 'Baixando...' : '📄 Baixar certificado PDF'}
+            <Download size={15} /> {baixando ? 'Baixando...' : 'Baixar certificado PDF'}
           </button>
 
           <div className="flex gap-2 items-center">
@@ -64,9 +72,9 @@ function CertificadoCard({ cert, curso, alunoId }: { cert: Certificado; curso: C
               href={`/verificar-certificado/${cert.qrCode}`}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
             >
-              🔗 Verificar autenticidade
+              <ExternalLink size={12} /> Verificar autenticidade
             </a>
             <span className="text-gray-300">·</span>
             <span className="text-xs text-gray-400 font-mono truncate">{cert.qrCode}</span>
@@ -79,7 +87,7 @@ function CertificadoCard({ cert, curso, alunoId }: { cert: Certificado; curso: C
           Este certificado foi revogado e não é mais válido.
         </StatusBanner>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -159,12 +167,13 @@ export default function CertificadosPage() {
       )}
 
       {!isLoading && certificados.length === 0 && (
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <Card className="p-4">
           <EmptyState
+            icon={<Award size={30} strokeWidth={1.75} />}
             title="Nenhum certificado ainda"
             description="Seus certificados aparecerão aqui após a conclusão dos cursos."
           />
-        </div>
+        </Card>
       )}
 
       {!isLoading && certificados.length > 0 && (

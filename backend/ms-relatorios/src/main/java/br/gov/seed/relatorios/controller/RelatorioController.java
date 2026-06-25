@@ -97,6 +97,16 @@ public class RelatorioController {
         return ResponseEntity.ok(relatorioService.painelMacro());
     }
 
+    @GetMapping("/avaliacoes")
+    @PreAuthorize("hasAnyRole('ADMIN_SEED', 'ADMIN_ESCOLA')")
+    @Operation(
+        summary = "Lista de avaliações (simulados) com estatísticas",
+        description = "Todos os simulados da rede com total de tentativas, nota média e taxa de acerto."
+    )
+    public ResponseEntity<List<RelatorioDTO.AvaliacaoItem>> avaliacoes() {
+        return ResponseEntity.ok(relatorioService.listarAvaliacoes());
+    }
+
     // ── Exportação CSV ─────────────────────────────────────────────────────────
 
     @GetMapping(value = "/seed/painel-macro/export", produces = "text/csv")

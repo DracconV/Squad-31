@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Area,
@@ -124,7 +124,7 @@ function MetricCard({
   tone: 'blue' | 'green' | 'yellow' | 'red'
 }) {
   const tones = {
-    blue: 'from-blue-500 to-indigo-500',
+    blue: 'from-brand-500 to-brand-700',
     green: 'from-emerald-500 to-teal-400',
     yellow: 'from-yellow-300 to-amber-400',
     red: 'from-rose-500 to-pink-500',
@@ -164,7 +164,7 @@ function HeroPanel({ mode }: { mode: 'aluno' | 'gestao' }) {
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm">
               Limite pedagógico: 75%
             </span>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm">
+            <span className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 shadow-sm">
               Busca ativa preventiva
             </span>
           </div>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
 import {
   concluirInscricao,
@@ -9,6 +9,8 @@ import {
   type Inscricao,
 } from '../lib/api'
 import { EmptyState } from '../components/EmptyState'
+import { Card } from '../components/Card'
+import { BookOpen, CheckCircle2, GraduationCap, Award } from 'lucide-react'
 
 /* ── Card de curso ─────────────────────────────────────────── */
 
@@ -36,17 +38,22 @@ function CursoCard({
     : null
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
+    <Card hover className="p-5 flex flex-col gap-3">
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-gray-800 leading-snug">{curso.nome}</h3>
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <BookOpen size={20} />
+          </span>
+          <h3 className="font-semibold text-gray-800 leading-snug pt-1.5">{curso.nome}</h3>
+        </div>
         {concluido && (
-          <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-            Concluído ✓
+          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-brand-50 text-brand-700">
+            <CheckCircle2 size={13} /> Concluído
           </span>
         )}
         {inscrito && !concluido && (
-          <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+          <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-gold-400/20 text-gold-600">
             Em andamento
           </span>
         )}
@@ -68,8 +75,8 @@ function CursoCard({
           <button
             onClick={() => onInscrever(curso.id)}
             disabled={loadingInscrever}
-            className="w-full py-2 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium
-                       hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium
+                       hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loadingInscrever ? 'Inscrevendo...' : 'Inscrever-se'}
           </button>
@@ -87,12 +94,12 @@ function CursoCard({
         )}
 
         {concluido && (
-          <div className="text-center text-sm text-green-600 font-medium py-2">
-            🎓 Certificado disponível em <a href="/certificados" className="underline">Certificados</a>
+          <div className="flex items-center justify-center gap-1.5 text-sm text-brand-600 font-medium py-2">
+            <GraduationCap size={16} /> Certificado em <a href="/certificados" className="underline">Certificados</a>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -175,12 +182,13 @@ export default function CursosPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => <CursoSkeleton key={i} />)}
         </div>
       ) : cursos.length === 0 ? (
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <Card className="p-4">
           <EmptyState
+            icon={<Award size={30} strokeWidth={1.75} />}
             title="Nenhum curso disponível"
             description="Novos cursos serão adicionados em breve."
           />
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {cursos.map((curso) => (

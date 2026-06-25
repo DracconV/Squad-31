@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 type Variant = 'info' | 'success' | 'warning' | 'error'
 
@@ -8,7 +8,7 @@ interface StatusBannerProps {
 }
 
 const styles: Record<Variant, string> = {
-  info:    'bg-blue-50 border-blue-300 text-blue-800',
+  info:    'bg-azul-50 border-azul-300 text-azul-700',
   success: 'bg-green-50 border-green-300 text-green-800',
   warning: 'bg-yellow-50 border-yellow-300 text-yellow-800',
   error:   'bg-red-50 border-red-300 text-red-800',

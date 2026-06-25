@@ -1,4 +1,4 @@
-interface ProgressBarProps {
+﻿interface ProgressBarProps {
   value: number        // 0 – 100
   label?: string
   showPercent?: boolean
@@ -7,7 +7,7 @@ interface ProgressBarProps {
 }
 
 const colorMap = {
-  blue:   'bg-blue-600',
+  blue:   'bg-brand-600',
   green:  'bg-green-500',
   red:    'bg-red-500',
   yellow: 'bg-yellow-400',

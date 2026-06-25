@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Timer, Check, X, Lightbulb, ChevronLeft, ChevronRight, Flag } from 'lucide-react'
+import MarkdownText from '../components/MarkdownText'
 import {
   buscarSimulado,
   iniciarSimulado,
@@ -46,7 +48,7 @@ export default function SimuladoPage() {
     finalizadoRef.current = true
     setEnviando(true)
     try {
-      const res = await finalizarSimulado(id)
+      const res = await finalizarSimulado(id, respostas)
       localStorage.removeItem(`simulado_inicio_${id}`) // limpa p/ um próximo "Refazer" começar do zero
       setResultado(res)
       setFase('resultado')
@@ -56,7 +58,7 @@ export default function SimuladoPage() {
     } finally {
       setEnviando(false)
     }
-  }, [id])
+  }, [id, respostas])
 
   // ── Carregamento inicial: detalhe + sessão + questões ─────────
   useEffect(() => {
@@ -148,7 +150,7 @@ export default function SimuladoPage() {
     return (
       <div className="bg-white rounded-xl p-10 text-center border border-gray-100 space-y-3">
         <p className="text-red-600">{erro || 'Erro ao carregar.'}</p>
-        <button onClick={() => navigate('/simulados')} className="text-blue-600 hover:underline text-sm">
+        <button onClick={() => navigate('/simulados')} className="text-brand-600 hover:underline text-sm">
           ← Voltar para simulados
         </button>
       </div>
@@ -163,7 +165,7 @@ export default function SimuladoPage() {
         <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center space-y-3">
           <div className="text-5xl">{pct >= 60 ? '🎉' : '📝'}</div>
           <h1 className="text-xl font-bold text-gray-800">Simulado finalizado!</h1>
-          <p className="text-4xl font-bold text-blue-600">{Number(resultado.nota).toFixed(1)}</p>
+          <p className="text-4xl font-bold text-brand-600">{Number(resultado.nota).toFixed(1)}</p>
           <p className="text-sm text-gray-500">
             {resultado.acertos} de {resultado.total} questões corretas ({pct}%)
           </p>
@@ -171,7 +173,7 @@ export default function SimuladoPage() {
             {!revisao && (
               <button
                 onClick={abrirRevisao}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
               >
                 Ver gabarito comentado
               </button>
@@ -207,11 +209,11 @@ export default function SimuladoPage() {
         <div
           role="timer"
           aria-live="polite"
-          className={`text-lg font-mono font-bold px-3 py-1.5 rounded-lg ${
-            tempoBaixo ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-700'
+          className={`inline-flex items-center gap-1.5 text-lg font-mono font-bold px-3 py-1.5 rounded-lg ${
+            tempoBaixo ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-brand-50 text-brand-700'
           }`}
         >
-          ⏱ {restante !== null ? formatarTempo(restante) : '--:--'}
+          <Timer size={18} /> {restante !== null ? formatarTempo(restante) : '--:--'}
         </div>
       </div>
 
@@ -224,7 +226,7 @@ export default function SimuladoPage() {
             aria-label={`Ir para questão ${i + 1}${respostas[i] ? ' (respondida)' : ''}`}
             className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
               i === atual
-                ? 'bg-blue-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : respostas[i]
                   ? 'bg-green-100 text-green-700'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -241,11 +243,11 @@ export default function SimuladoPage() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-400">Questão {atual + 1} de {questoes.length}</span>
             {questao.disciplina && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{questao.disciplina}</span>
+              <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full">{questao.disciplina}</span>
             )}
           </div>
 
-          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{questao.enunciado}</p>
+          <div className="text-sm text-gray-800 leading-relaxed"><MarkdownText text={questao.enunciado} /></div>
 
           <div className="space-y-2">
             {[...questao.alternativas].sort((a, b) => a.ordem - b.ordem).map((alt, i) => {
@@ -256,11 +258,11 @@ export default function SimuladoPage() {
                   onClick={() => responder(atual, alt.id)}
                   className={`w-full text-left flex gap-3 p-3 rounded-lg border text-sm transition ${
                     selecionada
-                      ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-300'
-                      : 'bg-gray-50 border-gray-200 hover:border-blue-300'
+                      ? 'bg-brand-50 border-brand-400 ring-1 ring-brand-300'
+                      : 'bg-gray-50 border-gray-200 hover:border-brand-300'
                   }`}
                 >
-                  <span className={`font-bold ${selecionada ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <span className={`font-bold ${selecionada ? 'text-brand-600' : 'text-gray-400'}`}>
                     {LETRAS[i] ?? i + 1})
                   </span>
                   <span className="text-gray-700">{alt.texto}</span>
@@ -274,24 +276,24 @@ export default function SimuladoPage() {
             <button
               onClick={() => setAtual((a) => Math.max(0, a - 1))}
               disabled={atual === 0}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+              className="inline-flex items-center gap-1 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50"
             >
-              ← Anterior
+              <ChevronLeft size={16} /> Anterior
             </button>
             {atual < questoes.length - 1 ? (
               <button
                 onClick={() => setAtual((a) => Math.min(questoes.length - 1, a + 1))}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
               >
-                Próxima →
+                Próxima <ChevronRight size={16} />
               </button>
             ) : (
               <button
                 onClick={finalizar}
                 disabled={enviando}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
               >
-                {enviando ? 'Enviando…' : 'Finalizar simulado'}
+                <Flag size={15} /> {enviando ? 'Enviando…' : 'Finalizar simulado'}
               </button>
             )}
           </div>
@@ -332,40 +334,41 @@ function Revisao({
           <div key={q.questaoId} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-400">Questão {q.ordem}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                acertou ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                acertou ? 'bg-brand-50 text-brand-700' : 'bg-red-100 text-red-700'
               }`}>
-                {acertou ? '✓ Você acertou' : '✗ Você errou'}
+                {acertou ? <><Check size={13} /> Você acertou</> : <><X size={13} /> Você errou</>}
               </span>
             </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{q.enunciado}</p>
+            <div className="text-sm text-gray-800 leading-relaxed"><MarkdownText text={q.enunciado} /></div>
             <div className="space-y-2">
               {[...q.alternativas].sort((a, b) => a.ordem - b.ordem).map((alt, i) => {
                 const isMinha = minhaResposta === alt.id
                 return (
                   <div
                     key={alt.id}
-                    className={`flex gap-2 p-2.5 rounded-lg text-sm border ${
+                    className={`flex gap-2 items-center p-2.5 rounded-lg text-sm border ${
                       alt.correta
-                        ? 'bg-green-50 border-green-300'
+                        ? 'bg-brand-50 border-brand-300'
                         : isMinha
                           ? 'bg-red-50 border-red-300'
                           : 'bg-gray-50 border-gray-100'
                     }`}
                   >
-                    <span className={`font-bold min-w-[1.2rem] ${alt.correta ? 'text-green-600' : isMinha ? 'text-red-500' : 'text-gray-400'}`}>
+                    <span className={`font-bold min-w-[1.2rem] ${alt.correta ? 'text-brand-600' : isMinha ? 'text-red-500' : 'text-gray-400'}`}>
                       {LETRAS[i] ?? i + 1})
                     </span>
                     <span className="text-gray-700">{alt.texto}</span>
-                    {alt.correta && <span className="ml-auto text-green-600 text-xs font-medium">✓ Correta</span>}
+                    {alt.correta && <span className="ml-auto inline-flex items-center gap-1 text-brand-600 text-xs font-medium"><Check size={13} /> Correta</span>}
                     {isMinha && !alt.correta && <span className="ml-auto text-red-500 text-xs font-medium">Sua resposta</span>}
                   </div>
                 )
               })}
             </div>
             {q.explicacao && (
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-900">
-                <span className="font-semibold">💡 Explicação: </span>{q.explicacao}
+              <div className="bg-gold-400/10 border border-gold-400/30 rounded-lg p-3 text-sm text-gray-700">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-gold-600"><Lightbulb size={15} /> Explicação:</span>{' '}
+                {q.explicacao}
               </div>
             )}
           </div>

@@ -170,6 +170,35 @@ public class RelatorioService {
         return new RelatorioDTO.PainelMacro(municipios.size(), municipios, LocalDateTime.now());
     }
 
+    // ── Avaliações (simulados com estatísticas) ───────────────────────────────
+
+    public List<RelatorioDTO.AvaliacaoItem> listarAvaliacoes() {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT s.id, s.titulo, s.pontuado, s.criado_em, " +
+                "  COUNT(t.id) FILTER (WHERE t.finalizado_em IS NOT NULL) AS total_tentativas, " +
+                "  COALESCE(AVG(t.nota) FILTER (WHERE t.finalizado_em IS NOT NULL), 0) AS nota_media " +
+                "FROM simulado s " +
+                "LEFT JOIN tentativa_simulado t ON t.simulado_id = s.id " +
+                "GROUP BY s.id, s.titulo, s.pontuado, s.criado_em " +
+                "ORDER BY s.criado_em DESC");
+
+        return rows.stream().map(r -> {
+            long tentativas = ((Number) r.get("total_tentativas")).longValue();
+            BigDecimal notaMedia = r.get("nota_media") != null
+                    ? new BigDecimal(r.get("nota_media").toString()).setScale(2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            double taxaAcerto = notaMedia.doubleValue() * 10; // nota 0-10 → taxa 0-100%
+            return new RelatorioDTO.AvaliacaoItem(
+                    UUID.fromString(r.get("id").toString()),
+                    (String) r.get("titulo"),
+                    Boolean.TRUE.equals(r.get("pontuado")),
+                    tentativas,
+                    notaMedia,
+                    taxaAcerto,
+                    toLocalDateTime(r.get("criado_em")));
+        }).toList();
+    }
+
     // ── Auditoria ─────────────────────────────────────────────────────────────
 
     public RelatorioDTO.RelatorioAuditoria auditoria(int limite) {

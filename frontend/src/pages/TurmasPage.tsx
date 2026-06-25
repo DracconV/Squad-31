@@ -1,6 +1,7 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
+import { Plus, X, Users, Eye } from 'lucide-react'
 import {
   listarMinhasTurmas,
   listarTurmas,
@@ -10,6 +11,8 @@ import {
   type Turma,
   type AlunoTurma,
 } from '../lib/api'
+import { Card } from '../components/Card'
+import { EmptyState } from '../components/EmptyState'
 
 function AlunosModal({ turma, onClose }: { turma: Turma; onClose: () => void }) {
   const { data: alunos = [], isLoading } = useQuery({
@@ -22,7 +25,7 @@ function AlunosModal({ turma, onClose }: { turma: Turma; onClose: () => void }) 
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-bold text-gray-800">Alunos — {turma.nome}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <div className="p-5 max-h-80 overflow-y-auto">
           {isLoading ? (
@@ -97,14 +100,14 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-bold text-gray-800">Nova turma</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {erro && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{erro}</p>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               value={form.nome}
               onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
               placeholder="Ex: 3ª série A"
@@ -115,7 +118,7 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Ano letivo</label>
               <input
                 type="number"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.ano}
                 onChange={(e) => setForm((f) => ({ ...f, ano: Number(e.target.value) }))}
               />
@@ -123,7 +126,7 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Modalidade</label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.modalidade}
                 onChange={(e) => setForm((f) => ({ ...f, modalidade: e.target.value }))}
               >
@@ -136,7 +139,7 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Instituição</label>
             <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               value={form.instituicaoId}
               onChange={(e) => setForm((f) => ({ ...f, instituicaoId: e.target.value }))}
             >
@@ -155,7 +158,7 @@ function NovaTurmaModal({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
             >
               {mutation.isPending ? 'Criando...' : 'Criar turma'}
             </button>
@@ -191,33 +194,33 @@ export default function TurmasPage() {
       {turmaAlunos && <AlunosModal turma={turmaAlunos} onClose={() => setTurmaAlunos(null)} />}
       {novaTurma && <NovaTurmaModal onClose={() => setNovaTurma(false)} />}
 
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Turmas</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {isProfessor ? 'Suas turmas' : 'Turmas da rede'}
-          </p>
-        </div>
+      <Card className="p-5 flex items-center justify-between gap-3">
+        <p className="text-sm text-gray-600">{isProfessor ? 'Suas turmas e alunos.' : 'Turmas da rede estadual.'}</p>
         {(isProfessor || isAdmin) && (
           <button
             onClick={() => setNovaTurma(true)}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition shrink-0"
           >
-            + Nova turma
+            <Plus size={16} /> Nova turma
           </button>
         )}
-      </div>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-white rounded-xl border animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-white rounded-2xl border animate-pulse" />)}
         </div>
       ) : turmas.length === 0 ? (
-        <div className="bg-white rounded-xl p-10 text-center border border-gray-100">
-          <p className="text-gray-400 text-sm">Nenhuma turma encontrada.</p>
-        </div>
+        <Card className="p-4">
+          <EmptyState
+            icon={<Users size={30} strokeWidth={1.75} />}
+            title="Nenhuma turma encontrada"
+            description={isProfessor ? 'Você ainda não tem turmas atribuídas.' : 'Crie a primeira turma da rede.'}
+            action={(isProfessor || isAdmin) ? { label: 'Nova turma', onClick: () => setNovaTurma(true) } : undefined}
+          />
+        </Card>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+        <Card className="overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-left">
               <tr>
@@ -235,14 +238,14 @@ export default function TurmasPage() {
                   <td className="px-5 py-3 font-medium text-gray-800">{t.nome}</td>
                   <td className="px-5 py-3 text-gray-500">{t.ano}</td>
                   <td className="px-5 py-3">
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-brand-50 text-brand-700">
                       {modalidadeLabel[t.modalidade] ?? t.modalidade}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-gray-500 truncate max-w-[180px]">{t.nomeInstituicao}</td>
                   <td className="px-5 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      t.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      t.ativo ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-500'
                     }`}>
                       {t.ativo ? 'Ativa' : 'Inativa'}
                     </span>
@@ -250,16 +253,16 @@ export default function TurmasPage() {
                   <td className="px-5 py-3">
                     <button
                       onClick={() => setTurmaAlunos(t)}
-                      className="text-blue-600 hover:underline text-sm"
+                      className="inline-flex items-center gap-1 text-brand-600 hover:underline text-sm"
                     >
-                      Ver alunos
+                      <Eye size={14} /> Ver alunos
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   )

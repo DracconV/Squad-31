@@ -110,6 +110,12 @@ services:
           --partitions 1 \
           --replication-factor 1
         echo "Topico simulado-eventos garantido."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+          --create --if-not-exists \
+          --topic notificacao-criada \
+          --partitions 1 \
+          --replication-factor 1
+        echo "Topico notificacao-criada garantido."
     networks:
       - seed-network
 
@@ -393,6 +399,39 @@ services:
       retries: 5
       start_period: 60s
 
+  ms-notificacoes:
+    build:
+      context: ../backend/ms-notificacoes
+      dockerfile: Dockerfile
+    container_name: seed-ms-notificacoes
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ms-autenticacao:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BROKERS: kafka:29092
+      SERVER_PORT: 8091
+    ports:
+      - "8091:8091"
+    networks:
+      - seed-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   api-gateway:
     build:
       context: ../backend/api-gateway
@@ -404,6 +443,8 @@ services:
         condition: service_healthy
       ms-autenticacao:
         condition: service_healthy
+      ms-notificacoes:
+        condition: service_healthy
     environment:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
@@ -413,6 +454,7 @@ services:
       MS_QUESTOES_URL: http://ms-questoes:8087
       MS_SIMULADOS_URL: http://ms-simulados:8088
       MS_RELATORIOS_URL: http://ms-relatorios:8089
+      MS_NOTIFICACOES_URL: http://ms-notificacoes:8091
       JWT_SECRET: ${JWT_SECRET}
       OTEL_SERVICE_NAME: api-gateway
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
