@@ -339,6 +339,62 @@ export async function listarInstituicoes(): Promise<Instituicao[]> {
   return data
 }
 
+export interface InstituicaoInput {
+  nome: string
+  municipio: string
+  codigoInep: string
+  ativo?: boolean
+}
+
+export async function criarInstituicao(input: InstituicaoInput): Promise<Instituicao> {
+  const { data } = await api.post<Instituicao>('/instituicoes', input)
+  return data
+}
+
+export async function atualizarInstituicao(id: string, input: Partial<InstituicaoInput>): Promise<Instituicao> {
+  const { data } = await api.put<Instituicao>(`/instituicoes/${id}`, input)
+  return data
+}
+
+/* ── Local de prova / Agendamentos (ms-autenticacao) ─────── */
+
+export interface SlotProva {
+  id: string
+  moduloId: string
+  data: string
+  local: string
+  vagasTotais: number
+  vagasOcupadas: number
+  vagasDisponiveis: number
+}
+
+export interface Agendamento {
+  id: string
+  alunoId: string
+  slotId: string
+  dataProva: string | null
+  local: string | null
+}
+
+export async function listarSlotsProva(): Promise<SlotProva[]> {
+  const { data } = await api.get<SlotProva[]>('/agendamentos/slots')
+  return data
+}
+
+export async function meusAgendamentos(): Promise<Agendamento[]> {
+  const { data } = await api.get<Agendamento[]>('/agendamentos/meus')
+  return data
+}
+
+export async function agendarProva(slotId: string): Promise<Agendamento> {
+  const { data } = await api.post<Agendamento>('/agendamentos', { slotId })
+  return data
+}
+
+export async function cancelarAgendamento(id: string): Promise<void> {
+  await api.delete(`/agendamentos/${id}`)
+}
+
 /* ── Usuários Admin (ms-autenticacao) ────────────────────── */
 
 export interface Usuario {

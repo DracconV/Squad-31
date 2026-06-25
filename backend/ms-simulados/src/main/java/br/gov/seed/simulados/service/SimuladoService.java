@@ -253,7 +253,9 @@ public class SimuladoService {
         simulado.setPontuado(request.pontuado());
         simulado.setDataInicio(request.dataInicio());
         simulado.setDataFim(request.dataFim());
-        return SimuladoResponse.from(simuladoRepo.save(simulado));
+        Simulado salvo = simuladoRepo.save(simulado);
+        publicarSimuladoLiberado(salvo);
+        return SimuladoResponse.from(salvo);
     }
 
     /**
@@ -293,6 +295,7 @@ public class SimuladoService {
             vinculos.add(sq);
         }
         simuladoQuestaoRepo.saveAll(vinculos);
+        publicarSimuladoLiberado(salvo);
 
         log.info("Simulado aleatório {} criado por {} com {} questões (disciplina={}, dificuldade={}, nivel={})",
                 salvo.getId(), professorId, questaoIds.size(),
@@ -300,6 +303,29 @@ public class SimuladoService {
 
         List<SimuladoQuestao> questoes = simuladoQuestaoRepo.findByIdSimuladoIdOrderByOrdem(salvo.getId());
         return SimuladoResponse.from(salvo, questoes);
+    }
+
+    /**
+     * Publica um evento SIMULADO_LIBERADO no outbox quando o simulado é de uma turma.
+     * O ms-notificacoes consome e notifica cada aluno da turma. Simulado sem turma
+     * (geral) não dispara fan-out para evitar notificar a rede inteira.
+     */
+    private void publicarSimuladoLiberado(Simulado simulado) {
+        if (simulado.getTurmaId() == null) return;
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tipo", "SIMULADO_LIBERADO");
+        payload.put("simuladoId", simulado.getId().toString());
+        payload.put("turmaId", simulado.getTurmaId().toString());
+        payload.put("titulo", simulado.getTitulo());
+
+        OutboxEvent evento = new OutboxEvent();
+        evento.setTipo("SIMULADO_LIBERADO");
+        try {
+            evento.setPayload(objectMapper.writeValueAsString(payload));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException("Erro ao serializar evento SIMULADO_LIBERADO", e);
+        }
+        outboxRepo.save(evento);
     }
 
     /** Sorteia IDs de questões ativas no banco compartilhado conforme filtros opcionais. */

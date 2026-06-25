@@ -44,4 +44,13 @@ public class InstituicaoController {
     public ResponseEntity<InstituicaoDTO.Response> criar(@Valid @RequestBody InstituicaoDTO.CriarRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(instituicaoService.criar(request));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN_SEED')")
+    @Operation(summary = "Editar instituicao", description = "Atualiza dados de uma escola. Requer perfil ADMIN_SEED.")
+    public ResponseEntity<InstituicaoDTO.Response> atualizar(
+            @PathVariable UUID id,
+            @RequestBody InstituicaoDTO.EditarRequest request) {
+        return ResponseEntity.ok(instituicaoService.atualizar(id, request));
+    }
 }

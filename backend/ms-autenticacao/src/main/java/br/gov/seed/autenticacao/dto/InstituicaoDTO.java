@@ -13,6 +13,13 @@ public class InstituicaoDTO {
         @NotBlank String codigoInep
     ) {}
 
+    public record EditarRequest(
+        String nome,
+        String municipio,
+        String codigoInep,
+        Boolean ativo
+    ) {}
+
     public record Response(
         UUID id,
         String nome,

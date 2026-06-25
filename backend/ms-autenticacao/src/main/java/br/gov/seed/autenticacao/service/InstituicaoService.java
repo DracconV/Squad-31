@@ -43,4 +43,29 @@ public class InstituicaoService {
 
         return InstituicaoDTO.Response.from(instituicaoRepository.save(instituicao));
     }
+
+    @Transactional
+    public InstituicaoDTO.Response atualizar(UUID id, InstituicaoDTO.EditarRequest request) {
+        Instituicao inst = instituicaoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Instituicao nao encontrada: " + id));
+
+        if (request.nome() != null && !request.nome().isBlank()) {
+            inst.setNome(request.nome());
+        }
+        if (request.municipio() != null && !request.municipio().isBlank()) {
+            inst.setMunicipio(request.municipio());
+        }
+        if (request.codigoInep() != null && !request.codigoInep().isBlank()
+                && !request.codigoInep().equals(inst.getCodigoInep())) {
+            if (instituicaoRepository.existsByCodigoInep(request.codigoInep())) {
+                throw new IllegalArgumentException("Codigo INEP ja cadastrado: " + request.codigoInep());
+            }
+            inst.setCodigoInep(request.codigoInep());
+        }
+        if (request.ativo() != null) {
+            inst.setAtivo(request.ativo());
+        }
+
+        return InstituicaoDTO.Response.from(instituicaoRepository.save(inst));
+    }
 }
