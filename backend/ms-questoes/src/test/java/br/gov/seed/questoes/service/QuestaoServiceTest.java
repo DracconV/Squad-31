@@ -106,7 +106,7 @@ class QuestaoServiceTest {
     @Test
     @DisplayName("buscarPorId retorna DTO quando questão existe e está ativa")
     void buscarPorId_questaoAtiva_retornaDTO() {
-        when(questaoRepository.findById(questao.getId())).thenReturn(Optional.of(questao));
+        when(questaoRepository.findByIdComDisciplina(questao.getId())).thenReturn(Optional.of(questao));
 
         QuestaoResponse resp = questaoService.buscarPorId(questao.getId(), false);
 
@@ -118,7 +118,7 @@ class QuestaoServiceTest {
     @DisplayName("buscarPorId lança exceção quando questão não existe")
     void buscarPorId_naoExiste_lancaExcecao() {
         UUID id = UUID.randomUUID();
-        when(questaoRepository.findById(id)).thenReturn(Optional.empty());
+        when(questaoRepository.findByIdComDisciplina(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questaoService.buscarPorId(id, false))
                 .isInstanceOf(RuntimeException.class)
@@ -129,7 +129,7 @@ class QuestaoServiceTest {
     @DisplayName("buscarPorId lança exceção quando questão está inativa")
     void buscarPorId_inativa_lancaExcecao() {
         questao.setAtiva(false);
-        when(questaoRepository.findById(questao.getId())).thenReturn(Optional.of(questao));
+        when(questaoRepository.findByIdComDisciplina(questao.getId())).thenReturn(Optional.of(questao));
 
         assertThatThrownBy(() -> questaoService.buscarPorId(questao.getId(), false))
                 .isInstanceOf(RuntimeException.class);
