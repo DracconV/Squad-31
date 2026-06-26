@@ -203,23 +203,35 @@ public class SimuladoController {
             HttpServletRequest request,
             HttpSession session) {
 
+        UUID alunoId = extrairAlunoId(request);
+
         SessaoSimulado sessao = (SessaoSimulado) session.getAttribute("sessao_simulado_" + id);
         if (sessao == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        UUID alunoId = extrairAlunoId(request);
-        if (!alunoId.equals(sessao.getAlunoId())) {
+            // Fallback client-authoritative: em alguns navegadores/ambientes o cookie de
+            // sessão não é reenviado no envio final (cross-origin, SameSite, cookie expirado).
+            // Como as respostas vêm no corpo e o aluno é identificado pelo JWT, finalizamos
+            // mesmo sem a sessão do servidor — evita o erro "não consigo finalizar".
+            // (O app sempre envia o corpo de respostas, mesmo vazio = nota zero válida.)
+            if (respostasCliente == null) {
+                return ResponseEntity.notFound().build();
+            }
+            log.info("Finalizar sem sessão de servidor — usando respostas do cliente (aluno={}, simulado={})", alunoId, id);
+            sessao = new SessaoSimulado();
+            sessao.setSimuladoId(id);
+            sessao.setAlunoId(alunoId);
+            sessao.setIniciadoEm(LocalDateTime.now());
+        } else if (!alunoId.equals(sessao.getAlunoId())) {
             return ResponseEntity.status(403).build();
         }
 
         // Respostas enviadas no envio final são autoritativas — cobrem auto-saves
         // (PUT /responder) que possam ter falhado por rede durante a prova.
+        final SessaoSimulado sessaoFinal = sessao;
         if (respostasCliente != null) {
             respostasCliente.forEach((indice, alternativaId) -> {
                 if (alternativaId != null && !alternativaId.isBlank()) {
                     try {
-                        sessao.getRespostas().put(Integer.parseInt(indice), alternativaId);
+                        sessaoFinal.getRespostas().put(Integer.parseInt(indice), alternativaId);
                     } catch (NumberFormatException ignorado) {
                         log.warn("Índice de resposta inválido no finalizar: {}", indice);
                     }
@@ -227,7 +239,7 @@ public class SimuladoController {
             });
         }
 
-        ResultadoResponse resultado = simuladoService.finalizar(id, alunoId, sessao);
+        ResultadoResponse resultado = simuladoService.finalizar(id, alunoId, sessaoFinal);
         session.removeAttribute("sessao_simulado_" + id);
         return ResponseEntity.ok(resultado);
     }
